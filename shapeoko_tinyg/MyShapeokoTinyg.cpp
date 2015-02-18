@@ -7,6 +7,24 @@ using namespace std;
 const char* g_ShapeokoTinygDeviceName= "ShapeokoTinyG";
 
 
+const char* g_SerialNumberProp = "SerialNumber";
+const char* g_ModelNumberProp = "ModelNumber";
+const char* g_SWVersionProp = "SoftwareVersion";
+
+const char* g_StepSizeXProp = "StepSizeX";
+const char* g_StepSizeYProp = "StepSizeY";
+const char* g_MaxVelocityProp = "MaxVelocity";
+const char* g_AccelProp = "Acceleration";
+const char* g_MoveTimeoutProp = "MoveTimeoutMs";
+
+const long xAxisMaxSteps = 2200000L;   // maximum number of steps in X
+const long yAxisMaxSteps = 1500000L;   // maximum number of steps in Y
+const double stepSizeUm = 0.05;        // step size in microns
+const double accelScale = 13.7438;     // scaling factor for acceleration
+const double velocityScale = 134218.0; // scaling factor for velocity
+
+const char* g_SyncStepProp = "SyncStep";
+
 ///////////////////////////////////////////////////////////////////////////////
 // Exported MMDevice API
 ///////////////////////////////////////////////////////////////////////////////
@@ -15,7 +33,7 @@ const char* g_ShapeokoTinygDeviceName= "ShapeokoTinyG";
  */
 MODULE_API void InitializeModuleData()
 {
-   RegisterDevice(g_StageName, MM::XYStageDevice, "ShapeokoTinyG");
+   RegisterDevice(g_ShapeokoTinygDeviceName, MM::XYStageDevice, "ShapeokoTinyG");
 }
 
 MODULE_API MM::Device* CreateDevice(const char* deviceName)
@@ -24,7 +42,7 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
       return 0;
 
    // decide which device class to create based on the deviceName parameter
-   if (strcmp(deviceName, g_StageName) == 0)
+   if (strcmp(deviceName, g_ShapeokoTinygDeviceName) == 0)
    {
       // create camera
       return new MyShapeokoTinyg();
@@ -62,10 +80,10 @@ MyShapeokoTinyg::MyShapeokoTinyg() :
    CreateProperty(MM::g_Keyword_Name, g_ShapeokoTinygDeviceName, MM::String, true);
 
    // Description
-   CreateProperty(MM::g_Keyword_Description, "XY stage adapter for EvaGrbl -- by Wei Ouyang", MM::String, true);
+   CreateProperty(MM::g_Keyword_Description, "XY stage adapter for ShapeOko Tinyg", MM::String, true);
 
 
-   cmdThread_ = new CommandThread(this);
+//   cmdThread_ = new CommandThread(this);
 }
 
 MyShapeokoTinyg::~MyShapeokoTinyg()
@@ -84,7 +102,7 @@ void MyShapeokoTinyg::GetName(char* name) const
 
 int MyShapeokoTinyg::Initialize()
 {
-   CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*   CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
    if (!hub || !hub->IsPortAvailable()) {
       return ERR_NO_PORT_SET;
    }
@@ -94,7 +112,7 @@ int MyShapeokoTinyg::Initialize()
 
 
    parameters_ = &hub->parameters;
-
+*/
    int ret = DEVICE_ERR;
 
    // initialize device and get hardware information
@@ -142,7 +160,7 @@ int MyShapeokoTinyg::Initialize()
 
 int MyShapeokoTinyg::Shutdown()
 {
-
+/*
    if (cmdThread_ && cmdThread_->IsMoving())
    {
       cmdThread_->Stop();
@@ -151,7 +169,7 @@ int MyShapeokoTinyg::Shutdown()
 
    delete cmdThread_;
    cmdThread_ = 0;
-
+*/
    if (initialized_)
       initialized_ = false;
 
@@ -165,20 +183,28 @@ bool MyShapeokoTinyg::Busy()
  
 double MyShapeokoTinyg::GetStepSizeXUm()
 {
-	CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*
+CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
    return 1000.0/(*parameters_)[0];
+*/
+	// TODO(dek): remove
+	return 0.0;
 }
 
 double MyShapeokoTinyg::GetStepSizeYUm()
 {
+	/*
 	CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
    return 1000.0/(*parameters_)[1];
+   */
+	// TODO(dek): remove
+	return 0.0;
 }
 
 int MyShapeokoTinyg::SetPositionSteps(long x, long y)
@@ -197,7 +223,8 @@ int MyShapeokoTinyg::SetRelativePositionSteps(long x, long y)
 }
 int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
    int ret;
-   	CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+   /*
+   CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
@@ -209,11 +236,14 @@ int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
    ostringstream os;
    os << "GetPositionSteps(), X=" << x << ", Y=" << y;
    LogMessage(os.str().c_str(), true);
+   */
+   // TODO(dek): remove this
+   return DEVICE_OK;
 }
 int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
 {
-   int ret;
-   	CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+   int ret;/*
+   CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
@@ -225,10 +255,13 @@ int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
    ostringstream os;
    os << "GetPositionSteps(), X=" << x << ", Y=" << y;
    LogMessage(os.str().c_str(), true);
+   */
+
    return DEVICE_OK;
 }
 int MyShapeokoTinyg::SetPositionUm(double x, double y){
-	 CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*
+CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
@@ -247,9 +280,13 @@ int MyShapeokoTinyg::SetPositionUm(double x, double y){
 	os << "Move finished with error code: " << errCode_;
 	LogMessage(os.str().c_str(), true);
 	return errCode_;
+	*/
+	// TODO(dek): remove this
+   return DEVICE_OK;
 }
 int MyShapeokoTinyg::SetRelativePositionUm(double dx, double dy){
-	 CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*
+CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
@@ -268,6 +305,10 @@ int MyShapeokoTinyg::SetRelativePositionUm(double dx, double dy){
     os << "Move finished with error code: " << errCode_;
     LogMessage(os.str().c_str(), true);
 	return errCode_;
+	
+*/
+// TODO(dek): remove this
+   return DEVICE_OK;
 }
 
 
@@ -277,7 +318,8 @@ int MyShapeokoTinyg::SetRelativePositionUm(double dx, double dy){
  */
 int MyShapeokoTinyg::Home()
 {
-   	CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*
+    CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	if (!hub || !hub->IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
 	}
@@ -291,6 +333,7 @@ int MyShapeokoTinyg::Home()
 	else
 		home_ = true; // successfully homed
    // check status
+   */
    return DEVICE_OK;
 }
 
@@ -405,7 +448,8 @@ int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct)
    } 
    else if (eAct == MM::AfterSet) 
    {   
-	   CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
+/*
+       CEVA_NDE_GrblHub* hub = static_cast<CEVA_NDE_GrblHub*>(GetParentHub());
 	   if (!hub || !hub->IsPortAvailable()) {
 		  return ERR_NO_PORT_SET;
 	   }
@@ -415,6 +459,7 @@ int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct)
 	   int ret = hub->SetSync(0,syncStep_);
 	   if(ret != DEVICE_OK)
 		   return ret;
+		   */
    }
 
    return DEVICE_OK;
@@ -438,8 +483,11 @@ int MyShapeokoTinyg::MoveBlocking(long x, long y, bool relative)
 
    //// send command to X axis
    //ret = xstage_->MoveBlocking(x, relative);
-   if (ret != DEVICE_OK)
-      return ret;
+   //if (ret != DEVICE_OK)
+   //   return ret;
    // send command to Y axis
+
+   // TODO(dek): remove this
+   ret = DEVICE_OK;
    return ret;//ystage_->MoveBlocking(y, relative);
 }

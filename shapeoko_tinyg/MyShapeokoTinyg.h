@@ -45,9 +45,14 @@ public:
    int GetPositionUm(double& x, double& y);
 
 private:
-	
-   bool initialized_;            // true if the device is intitalized
+	   int MoveBlocking(long x, long y, bool relative = false);
 
+	   double syncStep_;
+
+   bool initialized_;            // true if the device is intitalized
+ bool home_;                   // true if stage is homed
+   double answerTimeoutMs_;      // max wait for the device to answer
+   double moveTimeoutMs_;        // max wait for stage to finish moving
 
 
 };
