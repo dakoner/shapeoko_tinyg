@@ -65,16 +65,72 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
 }
 
 
+// From EVA's XYStage
+///////////////////////////////////////////////////////////////////////////////
+// CommandThread class
+// (for executing move commands)
+///////////////////////////////////////////////////////////////////////////////
+
+class MyShapeokoTinyg::CommandThread : public MMDeviceThreadBase
+{
+   public:
+      CommandThread(MyShapeokoTinyg* stage) :
+         stop_(false), moving_(false), stage_(stage), errCode_(DEVICE_OK) {}
+
+      virtual ~CommandThread() {}
+	  
+      int svc()
+      {
+		if (!stage_->IsPortAvailable()) {
+			return ERR_NO_PORT_SET;
+		}
+		while(1)
+		{
+			int ret = stage_->GetStatus();
+			if(ret != DEVICE_OK){
+				moving_ = false;
+				break;
+			}
+			char buf[30]="";
+			ret = stage_->GetProperty("Status",buf);
+			if((strcmp(buf,"Idle") == 0 )){
+				moving_ = false;
+				break;
+			}
+			else
+				moving_ = true;
+			CDeviceUtils::SleepMs(10);
+		}
+
+         return 0;
+      }
+      void Stop() {stop_ = true;}
+      bool GetStop() {return stop_;}
+      int GetErrorCode() {return errCode_;}
+      bool IsMoving()  {  return moving_;}
+
+   private:
+      void Reset() {stop_ = false; errCode_ = DEVICE_OK; moving_ = false;}
+      enum Command {MOVE, MOVEREL, HOME};
+      bool stop_;
+      bool moving_;
+      MyShapeokoTinyg* stage_;
+      long x_;
+      long y_;
+      Command cmd_;
+      Command lastCmd_;
+      int errCode_;
+};
+
+
 MyShapeokoTinyg::MyShapeokoTinyg() :
    CXYStageBase<MyShapeokoTinyg>(),
-  initialized_(false)
-   /*
+   initialized_(false),
    home_(false),
    answerTimeoutMs_(1000.0),
    moveTimeoutMs_(10000.0),
 
    cmdThread_(0) 
-   */
 {
   // From EVA's XYStage.cpp
 
@@ -92,7 +148,7 @@ MyShapeokoTinyg::MyShapeokoTinyg() :
    CreateProperty(MM::g_Keyword_Description, "XY stage adapter for ShapeOko Tinyg", MM::String, true);
 
 
-//   cmdThread_ = new CommandThread(this);
+  cmdThread_ = new CommandThread(this);
 
    // From EVA_NDE_Grbl
    portAvailable_ = false;
@@ -141,18 +197,6 @@ void MyShapeokoTinyg::GetName(char* name) const
 int MyShapeokoTinyg::Initialize()
 {
    /* From EVA's XYStage */
-
-/*   MyShapeokoTinyg* hub = static_cast<MyShapeokoTinyg*>(GetParentHub());
-   if (!hub || !hub->IsPortAvailable()) {
-      return ERR_NO_PORT_SET;
-   }
-   char hubLabel[MM::MaxStrLength];
-   hub->GetLabel(hubLabel);
-   SetParentID(hubLabel); // for backward comp.
-
-
-   parameters_ = &hub->parameters;
-*/
    int ret = DEVICE_ERR;
 
    // initialize device and get hardware information
@@ -196,11 +240,6 @@ int MyShapeokoTinyg::Initialize()
 
    /* From EVA_NDE_Grbl */
 
-   // Name
-   ret = CreateProperty(MM::g_Keyword_Name, g_ShapeokoTinygDeviceName, MM::String, true);
-   if (DEVICE_OK != ret)
-      return ret;
-
    MMThreadGuard myLock(lock_);
 
    std::ostringstream sversion;
@@ -221,14 +260,10 @@ int MyShapeokoTinyg::Initialize()
 
    initialized_ = true;
    return DEVICE_OK;
-
-   initialized_ = true;
-   return DEVICE_OK;
 }
 
 int MyShapeokoTinyg::Shutdown()
 {
-/*
    if (cmdThread_ && cmdThread_->IsMoving())
    {
       cmdThread_->Stop();
@@ -237,7 +272,7 @@ int MyShapeokoTinyg::Shutdown()
 
    delete cmdThread_;
    cmdThread_ = 0;
-*/
+
    if (initialized_)
       initialized_ = false;
 

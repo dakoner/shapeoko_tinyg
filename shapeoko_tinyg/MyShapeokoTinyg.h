@@ -111,7 +111,8 @@ private:
    enum MOVE_MODE {MOVE, MOVEREL, HOME};
    MOVE_MODE lastMode_;
 
-   // CommandThread* cmdThread_;    // thread used to execute move commands
+  class CommandThread;
+   CommandThread* cmdThread_;    // thread used to execute move commands
 
    double answerTimeoutMs_;      // max wait for the device to answer
    double moveTimeoutMs_;        // max wait for stage to finish moving
