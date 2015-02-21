@@ -78,7 +78,7 @@ class MyShapeokoTinyg::CommandThread : public MMDeviceThreadBase
          stop_(false), moving_(false), stage_(stage), errCode_(DEVICE_OK) {}
 
       virtual ~CommandThread() {}
-	  
+	
       int svc()
       {
 		if (!stage_->IsPortAvailable()) {
@@ -130,7 +130,7 @@ MyShapeokoTinyg::MyShapeokoTinyg() :
    answerTimeoutMs_(1000.0),
    moveTimeoutMs_(10000.0),
 
-   cmdThread_(0) 
+   cmdThread_(0)
 {
   // From EVA's XYStage.cpp
 
@@ -284,13 +284,29 @@ int MyShapeokoTinyg::Shutdown()
    return DEVICE_OK;
 }
 
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
 template <class Type>
 Type stringToNum(const std::string& str)
 {
 	std::istringstream iss(str);
 	Type num;
 	iss >> num;
-	return num;    
+	return num;
 }
 
 bool MyShapeokoTinyg::Busy()
@@ -314,32 +330,74 @@ int MyShapeokoTinyg::GetStatus()
     return ret;
    }
    LogMessage("returnString=" + returnString);
-   // std::vector<std::string> tokenInput;
+       // X position:          0.000 mm
+       // Y position:          0.000 mm
+       // Z position:          0.000 mm
+       // A position:          0.000 deg
+       // Feed rate:           0.000 mm/min
+       // Velocity:            0.000 mm/min
+       // Units:               G21 - millimeter mode
+       // Coordinate system:   G54 - coordinate system 1
+       // Distance mode:       G90 - absolute distance mode
+       // Feed rate mode:      G94 - units-per-minute mode (i.e. feedrate mode)
+       // Machine state:       Ready
+   std::vector<std::string> tokenInput;
    //      char* pEnd;
-   // 	CDeviceUtils::Tokenize(returnString, tokenInput, "<>,:\r\n");
-   // //sample: <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>
-   //      if(tokenInput.size() != 9)
-   //      {
-   //      	LogMessage(returnString.c_str());
-   //      	LogMessage("echo error!");
-   //      	return DEVICE_ERR;
-   //      }
-   //      status.assign(tokenInput[0].c_str());
-   //      MPos[0] = stringToNum<double>(tokenInput[2]);
-   //      MPos[1] = stringToNum<double>(tokenInput[3]);
-   //      MPos[2] = stringToNum<double>(tokenInput[4]);
-   //      WPos[0] = stringToNum<double>(tokenInput[6]);
-   //      WPos[1] = stringToNum<double>(tokenInput[7]);
-   //      WPos[2] = stringToNum<double>(tokenInput[8]);
-   return DEVICE_OK;
+   	CDeviceUtils::Tokenize(returnString, tokenInput, "\r\n");
+        for(std::vector<std::string>::iterator i = tokenInput.begin(); i != tokenInput.end(); ++i) {
+          LogMessage("Token input: ");
+          LogMessage(*i);
+          string x;
+          if (i->substr(0, 10) == "X position") {
+            x = i->substr(21,10);
+            std::vector<std::string> spl;
+            spl = split(x, ' ');
+            MPos[0] = stringToNum<double>(spl[0]);
+          }
+          if (i->substr(0, 10) == "Y position") {
+            x = i->substr(21,10);
+            std::vector<std::string> spl;
+            spl = split(x, ' ');
+            MPos[1] = stringToNum<double>(spl[0]);
+          }
+          if (i->substr(0, 10) == "Z position") {
+            x = i->substr(21,10);
+            std::vector<std::string> spl;
+            spl = split(x, ' ');
+            MPos[2] = stringToNum<double>(spl[0]);
+          }
+          if (i->substr(0, 9) == "Velocity:") {
+            x = i->substr(21,10);
+          }
+          if (i->substr(0, 6) == "Units:") {
+            // TODO(dek): correct these if wrong.
+            x = i->substr(21,10);
+          }
+          if (i->substr(0, 18) == "Coordinate system:") {
+            x = i->substr(21,10);
+          }
+          if (i->substr(0, 14) == "Distance mode:") {
+            // TODO(dek): correct these if wrong.
+            x = i->substr(21,10);
+          }
+          if (i->substr(0, 14) == "Machine state:") {
+            // TODO(dek): save to state variable
+            x = i->substr(21,10);
+          }
+          if (!x.empty()) {
+            LogMessage("Parsed line:");
+                LogMessage(x);
+                 }
 
+        }
+        return DEVICE_OK;
 }
 int MyShapeokoTinyg::SetSync(int axis, double value ){
   LogMessage("SetSync");
    std::string cmd;
    char buff[20];
    sprintf(buff, "M108P%.3fQ%d", value,axis);
-   cmd.assign(buff); 
+   cmd.assign(buff);
    std::string returnString;
    int ret = SendCommand(cmd,returnString);
    return ret;
@@ -349,7 +407,7 @@ int MyShapeokoTinyg::SetParameter(int index, double value){
    std::string cmd;
    char buff[20];
    sprintf(buff, "$%d=%.3f", index,value);
-   cmd.assign(buff); 
+   cmd.assign(buff);
    std::string returnString;
    int ret = SendCommand(cmd,returnString);
    return ret;
@@ -358,7 +416,7 @@ int MyShapeokoTinyg::SetParameter(int index, double value){
 //	MMThreadGuard(this->executeLock_);
 //   std::string cmd;
 //   char buff[]={0x18,0x00};
-//   cmd.assign(buff); 
+//   cmd.assign(buff);
 //   std::string returnString;
 //   SetAnswerTimeoutMs(2000.0);
 //	PurgeComPortH();
@@ -417,7 +475,7 @@ int MyShapeokoTinyg::GetParameters()
    int ret = SendCommand(cmd,returnString);
    if (ret != DEVICE_OK)
     return ret;
-   
+
    	std::vector<std::string> tokenInput;
 
 	char* pEnd;
@@ -444,11 +502,11 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
    MMThreadGuard(this->executeLock_);
    PurgeComPortH();
    int ret = DEVICE_OK;
-   // 	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H') 
+   // 	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H')
    //      {
    //      	// Check that we have a controller:
    //      	ret = GetStatus();
-   //      	if( DEVICE_OK != ret) 
+   //      	if( DEVICE_OK != ret)
    //      	return ret;
    //      	ret = GetParameters();
    //      	if( DEVICE_OK != ret)
@@ -488,12 +546,11 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
         	   LogMessage(std::string("answer get error!"));
         	  return ret;
            }
-           LogMessage("Got answer:" + an);
            returnString.assign(an);
            return DEVICE_OK;
 
    }
-   else{ 
+   else{
      LogMessage("Other.");
 	   try
 	   {
@@ -533,7 +590,7 @@ MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
    // all conditions must be satisfied...
    MM::DeviceDetectionStatus result = MM::Misconfigured;
    char answerTO[MM::MaxStrLength];
-   
+
    try
    {
       std::string portLowerCase = port_;
@@ -591,17 +648,17 @@ MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
 int MyShapeokoTinyg::DetectInstalledDevices()
 {
   LogMessage("DetectInstalledDevice");
-   if (MM::CanCommunicate == DetectDevice()) 
+   if (MM::CanCommunicate == DetectDevice())
    {
-      // std::vector<std::string> peripherals; 
+      // std::vector<std::string> peripherals;
       // peripherals.clear();
       // peripherals.push_back(g_ShapeokoTinygDeviceName);
       // //peripherals.push_back(g_DeviceNameEVA_NDE_GrblZStage);
 
-      // for (size_t i=0; i < peripherals.size(); i++) 
+      // for (size_t i=0; i < peripherals.size(); i++)
       // {
       //    MM::Device* pDev = ::CreateDevice(peripherals[i].c_str());
-      //    if (pDev) 
+      //    if (pDev)
       //    {
       //       AddInstalledDevice(pDev);
       //    }
@@ -679,7 +736,7 @@ int MyShapeokoTinyg::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
    return DEVICE_OK;
 }
 
-// From EVA's XYStage.cpp 
+// From EVA's XYStage.cpp
 
 double MyShapeokoTinyg::GetStepSizeXUm()
 {
@@ -706,9 +763,9 @@ int MyShapeokoTinyg::SetPositionSteps(long x, long y)
    SetPositionUm(x*GetStepSizeXUm(), y*GetStepSizeYUm());
    CDeviceUtils::SleepMs(10); // to make sure that there is enough time for thread to get started
 
-   return DEVICE_OK;   
+   return DEVICE_OK;
 }
- 
+
 int MyShapeokoTinyg::SetRelativePositionSteps(long x, long y)
 {
    SetRelativePositionUm(x*GetStepSizeXUm(), y*GetStepSizeYUm());
@@ -717,18 +774,23 @@ int MyShapeokoTinyg::SetRelativePositionSteps(long x, long y)
 int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
   LogMessage("GetPositionUm");
    int ret;
-   
+
    if (!IsPortAvailable()) {
+  LogMessage("1");
      return ERR_NO_PORT_SET;
    }
+  LogMessage("2");
     ret = GetStatus();
 	if (ret != DEVICE_OK)
     return ret;
+  LogMessage("3");
 	x =  MPos[0]*1000.0 ;
 	y =   MPos[1]*1000.0;
    ostringstream os;
    os << "GetPositionSteps(), X=" << x << ", Y=" << y;
+   LogMessage("Output from GetPositionUm:");
    LogMessage(os.str().c_str(), true);
+   return DEVICE_OK;
 
 }
 int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
@@ -831,9 +893,9 @@ int MyShapeokoTinyg::SetOrigin()
 {
    // commnted oout since we do not really want to support setting the origin
    // int ret = SetAdapterOriginUm(0.0, 0.0);
-   return DEVICE_OK; 
+   return DEVICE_OK;
 }
- 
+
 int MyShapeokoTinyg::GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax)
 {
    xMin = 0.0;
@@ -862,13 +924,13 @@ int MyShapeokoTinyg::GetStepLimits(long& xMin, long& xMax, long& yMin, long& yMa
 /**
  * Gets and sets the maximum speed with which the stage travels
  */
-int MyShapeokoTinyg::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType eAct) 
+int MyShapeokoTinyg::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
-   if (eAct == MM::BeforeGet) 
+   if (eAct == MM::BeforeGet)
    {
 
-   } 
-   else if (eAct == MM::AfterSet) 
+   }
+   else if (eAct == MM::AfterSet)
    {
    }
 
@@ -878,13 +940,13 @@ int MyShapeokoTinyg::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
  * Gets and sets the Acceleration of the stage travels
  */
-int MyShapeokoTinyg::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct) 
+int MyShapeokoTinyg::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
-   if (eAct == MM::BeforeGet) 
+   if (eAct == MM::BeforeGet)
    {
 	    pProp->Set(moveTimeoutMs_);
-   } 
-   else if (eAct == MM::AfterSet) 
+   }
+   else if (eAct == MM::AfterSet)
    {
 	   pProp->Get(moveTimeoutMs_);
 
@@ -896,13 +958,13 @@ int MyShapeokoTinyg::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct
 /**
  * Gets and sets the Acceleration of the stage travels
  */
-int MyShapeokoTinyg::OnMoveTimeout(MM::PropertyBase* pProp, MM::ActionType eAct) 
+int MyShapeokoTinyg::OnMoveTimeout(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
-   if (eAct == MM::BeforeGet) 
+   if (eAct == MM::BeforeGet)
    {
       pProp->Set(moveTimeoutMs_);
-   } 
-   else if (eAct == MM::AfterSet) 
+   }
+   else if (eAct == MM::AfterSet)
    {
       pProp->Get(moveTimeoutMs_);
    }
@@ -912,19 +974,19 @@ int MyShapeokoTinyg::OnMoveTimeout(MM::PropertyBase* pProp, MM::ActionType eAct)
 /**
  * Gets and sets the sync signal step
  */
-int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct) 
+int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
   LogMessage("A");
-   if (eAct == MM::BeforeGet) 
+   if (eAct == MM::BeforeGet)
    {
 
      LogMessage("B");
       pProp->Set(syncStep_);
      LogMessage("C");
 
-   } 
-   else if (eAct == MM::AfterSet) 
-   {   
+   }
+   else if (eAct == MM::AfterSet)
+   {
      if (!IsPortAvailable()) {
 		  return ERR_NO_PORT_SET;
 	   }
@@ -952,7 +1014,7 @@ int MyShapeokoTinyg::MoveBlocking(long x, long y, bool relative)
    int ret;
 
    //if (!home_)
-   //   return ERR_HOME_REQUIRED; 
+   //   return ERR_HOME_REQUIRED;
 
    //// send command to X axis
    //ret = xstage_->MoveBlocking(x, relative);
