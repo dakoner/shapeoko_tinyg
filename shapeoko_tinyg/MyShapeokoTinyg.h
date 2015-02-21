@@ -56,7 +56,11 @@ public:
    }
     int GetSerialAnswerComPortH (std::string& ans,  const char* term)
 	{
-		return GetSerialAnswer(port_.c_str(),term,ans);
+          LogMessage("GetSerialAnswer:", term);
+          int ret = GetSerialAnswer(port_.c_str(),term,ans);
+          LogMessage("ret=" + ret);
+          LogMessage("ans=" + ans);
+          return ret;
 	}
    static MMThreadLock& GetLock() {return lock_;}
 

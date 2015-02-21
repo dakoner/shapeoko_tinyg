@@ -173,8 +173,9 @@ MyShapeokoTinyg::MyShapeokoTinyg() :
    SetErrorText(ERR_VERSION_MISMATCH, errorText.str().c_str());
 
    CPropertyAction* pAct  = new CPropertyAction(this, &MyShapeokoTinyg::OnPort);
-   //CreateProperty("ComPort", "Undifined", MM::String, false, pAct);
-   CreateProperty(MM::g_Keyword_Port, "Undefined", MM::String, false, pAct, true);
+   // CreateProperty("ComPort", "Undifined", MM::String, false, pAct);
+   int ret = CreateProperty(MM::g_Keyword_Port, "/dev/ttyUSB0", MM::String, false, pAct, true);
+   LogMessage("ret=" + ret);
 
    pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnStatus);
    CreateProperty("Status", "-", MM::String, true, pAct);  //read only
@@ -250,17 +251,17 @@ int MyShapeokoTinyg::Initialize()
    sversion << version_;
    CreateProperty(g_versionProp, sversion.str().c_str(), MM::String, true, pAct);
 
-   // pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnCommand);
-   // ret = CreateProperty("Command","", MM::String, false, pAct);
-   // if (DEVICE_OK != ret)
-   //    return ret;
-   // // turn off verbose serial debug messages
-   // GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "0");
-   // // synchronize all properties
-   // // --------------------------
-   // ret = UpdateStatus();
-   // if (ret != DEVICE_OK)
-   //    return ret;
+   pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnCommand);
+   ret = CreateProperty("Command","", MM::String, false, pAct);
+   if (DEVICE_OK != ret)
+      return ret;
+   // turn off verbose serial debug messages
+   GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "1");
+   // synchronize all properties
+   // --------------------------
+   ret = UpdateStatus();
+   if (ret != DEVICE_OK)
+      return ret;
 
    initialized_ = true;
    return DEVICE_OK;
@@ -302,15 +303,17 @@ bool MyShapeokoTinyg::Busy()
 // 2. purge the port
 int MyShapeokoTinyg::GetStatus()
 {
+  LogMessage("GetStatus");
    std::string cmd;
-   // cmd.assign("?"); // x step/mm
-   // std::string returnString;
-   // int ret = SendCommand(cmd,returnString);
-   // if (ret != DEVICE_OK)
-   // {
-   //       LogMessage("command send failed!");
-   //  return ret;
-   // }
+   cmd.assign("$sr"); // x step/mm
+   std::string returnString;
+   int ret = SendCommand(cmd,returnString);
+   if (ret != DEVICE_OK)
+   {
+         LogMessage("command send failed!");
+    return ret;
+   }
+   LogMessage("returnString=" + returnString);
    // std::vector<std::string> tokenInput;
    //      char* pEnd;
    // 	CDeviceUtils::Tokenize(returnString, tokenInput, "<>,:\r\n");
@@ -332,6 +335,7 @@ int MyShapeokoTinyg::GetStatus()
 
 }
 int MyShapeokoTinyg::SetSync(int axis, double value ){
+  LogMessage("SetSync");
    std::string cmd;
    char buff[20];
    sprintf(buff, "M108P%.3fQ%d", value,axis);
@@ -341,6 +345,7 @@ int MyShapeokoTinyg::SetSync(int axis, double value ){
    return ret;
 }
 int MyShapeokoTinyg::SetParameter(int index, double value){
+  LogMessage("SetParameter");
    std::string cmd;
    char buff[20];
    sprintf(buff, "$%d=%.3f", index,value);
@@ -377,6 +382,7 @@ int MyShapeokoTinyg::SetParameter(int index, double value){
 
 int MyShapeokoTinyg::GetParameters()
 {
+  LogMessage("GetParameters");
 	/*
 	sample parameters:
 	$0=250.000 (x, step/mm)
@@ -430,56 +436,65 @@ int MyShapeokoTinyg::GetParameters()
 }
 int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
 {
+  LogMessage("SendCommand");
+  LogMessage("command=" + command);
    if(!portAvailable_)
 	   return ERR_NO_PORT_SET;
    // needs a lock because the other Thread will also use this function
    MMThreadGuard(this->executeLock_);
    PurgeComPortH();
    int ret = DEVICE_OK;
-   	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H') 
-	{
-		// Check that we have a controller:
-		ret = GetStatus();
-		if( DEVICE_OK != ret) 
-		return ret;
-		ret = GetParameters();
-		if( DEVICE_OK != ret)
-		return ret;
-	   	SetAnswerTimeoutMs(60000.0);
-	}
-   else if(command.c_str()[0] == '$' || command.c_str()[0] == '?')
-	  SetAnswerTimeoutMs(5000.0);//for long command
-   else
-	  SetAnswerTimeoutMs(300.0); //for normal command
+   // 	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H') 
+   //      {
+   //      	// Check that we have a controller:
+   //      	ret = GetStatus();
+   //      	if( DEVICE_OK != ret) 
+   //      	return ret;
+   //      	ret = GetParameters();
+   //      	if( DEVICE_OK != ret)
+   //      	return ret;
+   //         	SetAnswerTimeoutMs(60000.0);
+   //      }
+   // else if(command.c_str()[0] == '$' || command.c_str()[0] == '?')
+   //        SetAnswerTimeoutMs(5000.0);//for long command
+   // else
+   //        SetAnswerTimeoutMs(300.0); //for normal command
 
-   ret = SetCommandComPortH(command.c_str(),"\n");
+   LogMessage("Write command.");
+   ret = SetCommandComPortH(command.c_str(),"\r\n");
+   LogMessage("set command, ret=" + ret);
    if (ret != DEVICE_OK)
    {
-	    LogMessage(std::string("command write fail"));
+	    LogMessage("command write fail");
 	   return ret;
    }
    std::string an;
    if(command.c_str()[0] == 0x18 ){
+     LogMessage("Send reset.");
         CDeviceUtils::SleepMs(600);
 	    ret = GetParameters();
 	    returnString.assign("ok");
 		LogMessage(std::string("Reset!"));
 		return DEVICE_OK;
    }
-   else if(command.c_str()[0] == '$' || command.c_str()[0] == '?'){
+   else if(command.c_str()[0] == '$' && command.c_str()[1] == 's' && command.c_str()[2] == 'r'){
 
-		ret = GetSerialAnswerComPortH(an,"ok\r\n");
-	   //ret = comPort->Read(answer,3,charsRead);
-	   if (ret != DEVICE_OK)
-	   {
-		   LogMessage(std::string("answer get error!"));
-		  return ret;
-	   }
-	   returnString.assign(an);
-	   return DEVICE_OK;
+     LogMessage("Status request.");
+            	SetAnswerTimeoutMs(10000.0);
+        	ret = GetSerialAnswerComPortH(an,"\r\n");
+           // ret = comPort->Read(an,3,charsRead);
+           if (ret != DEVICE_OK)
+           {
+        	   LogMessage(std::string("answer get error!"));
+        	  return ret;
+           }
+           LogMessage("Got answer:" + an);
+           returnString.assign(an);
+           return DEVICE_OK;
 
    }
    else{ 
+     LogMessage("Other.");
 	   try
 	   {
 
@@ -511,6 +526,7 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
 
 MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
 {
+  LogMessage("DetectDevice");
   if (initialized_)
       return MM::CanCommunicate;
 
@@ -534,7 +550,7 @@ MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
          // device specific default communication parameters
          // for Arduino Duemilanova
          GetCoreCallback()->SetDeviceProperty(port_.c_str(), MM::g_Keyword_Handshaking, "Off");
-         GetCoreCallback()->SetDeviceProperty(port_.c_str(), MM::g_Keyword_BaudRate, "9600" );
+         GetCoreCallback()->SetDeviceProperty(port_.c_str(), MM::g_Keyword_BaudRate, "115200" );
          GetCoreCallback()->SetDeviceProperty(port_.c_str(), MM::g_Keyword_StopBits, "1");
          // Arduino timed out in GetControllerVersion even if AnswerTimeout  = 300 ms
          GetCoreCallback()->SetDeviceProperty(port_.c_str(), "AnswerTimeout", "500.0");
@@ -549,6 +565,7 @@ MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
          // later, Initialize will explicitly check the version #
          if( DEVICE_OK != ret )
          {
+           LogMessage("Got:");
             LogMessageCode(ret,true);
          }
          else
@@ -573,6 +590,7 @@ MM::DeviceDetectionStatus MyShapeokoTinyg::DetectDevice(void)
 
 int MyShapeokoTinyg::DetectInstalledDevices()
 {
+  LogMessage("DetectInstalledDevice");
    if (MM::CanCommunicate == DetectDevice()) 
    {
       // std::vector<std::string> peripherals; 
@@ -604,13 +622,16 @@ int MyShapeokoTinyg::SetAnswerTimeoutMs(double timeout)
 
 int MyShapeokoTinyg::OnPort(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
+  LogMessage("OnPort");
    if (pAct == MM::BeforeGet)
    {
+     LogMessage("OnPort set:" + port_);
       pProp->Set(port_.c_str());
    }
    else if (pAct == MM::AfterSet)
    {
       pProp->Get(port_);
+     LogMessage("OnPort get:" + port_);
       portAvailable_ = true;
    }
    return DEVICE_OK;
@@ -638,6 +659,7 @@ int MyShapeokoTinyg::OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct)
 
 int MyShapeokoTinyg::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
+  LogMessage("OnCommand");
    if (pAct == MM::BeforeGet)
    {
 	   pProp->Set(commandResult_.c_str());
@@ -661,6 +683,7 @@ int MyShapeokoTinyg::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
 
 double MyShapeokoTinyg::GetStepSizeXUm()
 {
+  LogMessage("GetStepSizeXUm");
   if (!IsPortAvailable()) {
     return ERR_NO_PORT_SET;
   }
@@ -669,6 +692,7 @@ double MyShapeokoTinyg::GetStepSizeXUm()
 
 double MyShapeokoTinyg::GetStepSizeYUm()
 {
+  LogMessage("GetStepSizeYUm");
   if (!IsPortAvailable()) {
     return ERR_NO_PORT_SET;
   }
@@ -678,6 +702,7 @@ double MyShapeokoTinyg::GetStepSizeYUm()
 int MyShapeokoTinyg::SetPositionSteps(long x, long y)
 {
 
+  LogMessage("SetPositionSteps");
    SetPositionUm(x*GetStepSizeXUm(), y*GetStepSizeYUm());
    CDeviceUtils::SleepMs(10); // to make sure that there is enough time for thread to get started
 
@@ -690,6 +715,7 @@ int MyShapeokoTinyg::SetRelativePositionSteps(long x, long y)
    return DEVICE_OK;
 }
 int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
+  LogMessage("GetPositionUm");
    int ret;
    
    if (!IsPortAvailable()) {
@@ -707,6 +733,7 @@ int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
 }
 int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
 {
+  LogMessage("GetPositionSteps");
    int ret;
 	if (!IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
