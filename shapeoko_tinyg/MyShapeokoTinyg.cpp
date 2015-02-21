@@ -196,6 +196,7 @@ void MyShapeokoTinyg::GetName(char* name) const
 
 int MyShapeokoTinyg::Initialize()
 {
+  LogMessage("1");
    /* From EVA's XYStage */
    int ret = DEVICE_ERR;
 
@@ -207,14 +208,14 @@ int MyShapeokoTinyg::Initialize()
 
    // check if we are already homed
 
-  
+   CPropertyAction* pAct;
 
    // Step size
    CreateProperty(g_StepSizeXProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
    CreateProperty(g_StepSizeYProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
 
    // Max Speed
-   CPropertyAction* pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnMaxVelocity);
+   pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnMaxVelocity);
    CreateProperty(g_MaxVelocityProp, "100.0", MM::Float, false, pAct);
    //SetPropertyLimits(g_MaxVelocityProp, 0.0, 31999.0);
 
@@ -233,30 +234,33 @@ int MyShapeokoTinyg::Initialize()
    CreateProperty(g_SyncStepProp, "1.0", MM::Float, false, pAct);
    //SetPropertyLimits("Acceleration", 0.0, 150);
 
+  LogMessage("2");
 
    ret = UpdateStatus();
    if (ret != DEVICE_OK)
       return ret;
+  LogMessage("3");
 
    /* From EVA_NDE_Grbl */
 
    MMThreadGuard myLock(lock_);
 
+   pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnVersion);
    std::ostringstream sversion;
    sversion << version_;
    CreateProperty(g_versionProp, sversion.str().c_str(), MM::String, true, pAct);
 
-   pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnCommand);
-   ret = CreateProperty("Command","", MM::String, false, pAct);
-   if (DEVICE_OK != ret)
-      return ret;
-   // turn off verbose serial debug messages
-   GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "0");
-   // synchronize all properties
-   // --------------------------
-   ret = UpdateStatus();
-   if (ret != DEVICE_OK)
-      return ret;
+   // pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnCommand);
+   // ret = CreateProperty("Command","", MM::String, false, pAct);
+   // if (DEVICE_OK != ret)
+   //    return ret;
+   // // turn off verbose serial debug messages
+   // GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "0");
+   // // synchronize all properties
+   // // --------------------------
+   // ret = UpdateStatus();
+   // if (ret != DEVICE_OK)
+   //    return ret;
 
    initialized_ = true;
    return DEVICE_OK;
@@ -299,31 +303,31 @@ bool MyShapeokoTinyg::Busy()
 int MyShapeokoTinyg::GetStatus()
 {
    std::string cmd;
-   cmd.assign("?"); // x step/mm
-   std::string returnString;
-   int ret = SendCommand(cmd,returnString);
-   if (ret != DEVICE_OK)
-   {
-	 LogMessage("command send failed!");
-    return ret;
-   }
-   std::vector<std::string> tokenInput;
-	char* pEnd;
-   	CDeviceUtils::Tokenize(returnString, tokenInput, "<>,:\r\n");
-   //sample: <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>
-	if(tokenInput.size() != 9)
-	{
-		LogMessage(returnString.c_str());
-		LogMessage("echo error!");
-		return DEVICE_ERR;
-	}
-	status.assign(tokenInput[0].c_str());
-	MPos[0] = stringToNum<double>(tokenInput[2]);
-	MPos[1] = stringToNum<double>(tokenInput[3]);
-	MPos[2] = stringToNum<double>(tokenInput[4]);
-	WPos[0] = stringToNum<double>(tokenInput[6]);
-	WPos[1] = stringToNum<double>(tokenInput[7]);
-	WPos[2] = stringToNum<double>(tokenInput[8]);
+   // cmd.assign("?"); // x step/mm
+   // std::string returnString;
+   // int ret = SendCommand(cmd,returnString);
+   // if (ret != DEVICE_OK)
+   // {
+   //       LogMessage("command send failed!");
+   //  return ret;
+   // }
+   // std::vector<std::string> tokenInput;
+   //      char* pEnd;
+   // 	CDeviceUtils::Tokenize(returnString, tokenInput, "<>,:\r\n");
+   // //sample: <Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>
+   //      if(tokenInput.size() != 9)
+   //      {
+   //      	LogMessage(returnString.c_str());
+   //      	LogMessage("echo error!");
+   //      	return DEVICE_ERR;
+   //      }
+   //      status.assign(tokenInput[0].c_str());
+   //      MPos[0] = stringToNum<double>(tokenInput[2]);
+   //      MPos[1] = stringToNum<double>(tokenInput[3]);
+   //      MPos[2] = stringToNum<double>(tokenInput[4]);
+   //      WPos[0] = stringToNum<double>(tokenInput[6]);
+   //      WPos[1] = stringToNum<double>(tokenInput[7]);
+   //      WPos[2] = stringToNum<double>(tokenInput[8]);
    return DEVICE_OK;
 
 }
@@ -883,10 +887,13 @@ int MyShapeokoTinyg::OnMoveTimeout(MM::PropertyBase* pProp, MM::ActionType eAct)
  */
 int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct) 
 {
+  LogMessage("A");
    if (eAct == MM::BeforeGet) 
    {
 
+     LogMessage("B");
       pProp->Set(syncStep_);
+     LogMessage("C");
 
    } 
    else if (eAct == MM::AfterSet) 
