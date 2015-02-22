@@ -197,7 +197,6 @@ void MyShapeokoTinyg::GetName(char* name) const
 
 int MyShapeokoTinyg::Initialize()
 {
-  LogMessage("1");
    /* From EVA's XYStage */
    int ret = DEVICE_ERR;
 
@@ -478,17 +477,20 @@ int MyShapeokoTinyg::GetParameters()
 
    	std::vector<std::string> tokenInput;
 
-	char* pEnd;
-   	CDeviceUtils::Tokenize(returnString, tokenInput, "$=()\r\n");
-   if(tokenInput.size() != PARAMETERS_COUNT*3)
-	   return DEVICE_ERR;
-   parameters.clear();
-   std::vector<std::string>::iterator it;
-   for (it=tokenInput.begin(); it!=tokenInput.end(); it+=3)
-   {
-	   std::string str = *(it+1);
-	   parameters.push_back(stringToNum<double>(str));
-   }
+   	CDeviceUtils::Tokenize(returnString, tokenInput, "\r\n");
+        for(std::vector<std::string>::iterator i = tokenInput.begin(); i != tokenInput.end(); ++i) {
+          LogMessage("Token input: ");
+          LogMessage(*i);
+        }
+   // if(tokenInput.size() != PARAMETERS_COUNT*3)
+   //         return DEVICE_ERR;
+   // parameters.clear();
+   // std::vector<std::string>::iterator it;
+   // for (it=tokenInput.begin(); it!=tokenInput.end(); it+=3)
+   // {
+   //         std::string str = *(it+1);
+   //         parameters.push_back(stringToNum<double>(str));
+   // }
    return DEVICE_OK;
 
 }
@@ -502,6 +504,8 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
    MMThreadGuard(this->executeLock_);
    PurgeComPortH();
    int ret = DEVICE_OK;
+   SetAnswerTimeoutMs(300.0); //for normal command
+
    // 	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H')
    //      {
    //      	// Check that we have a controller:
@@ -513,10 +517,6 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
    //      	return ret;
    //         	SetAnswerTimeoutMs(60000.0);
    //      }
-   // else if(command.c_str()[0] == '$' || command.c_str()[0] == '?')
-   //        SetAnswerTimeoutMs(5000.0);//for long command
-   // else
-   //        SetAnswerTimeoutMs(300.0); //for normal command
 
    LogMessage("Write command.");
    ret = SetCommandComPortH(command.c_str(),"\r\n");
@@ -530,9 +530,11 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
    if(command.c_str()[0] == 0x18 ){
      LogMessage("Send reset.");
         CDeviceUtils::SleepMs(600);
-	    ret = GetParameters();
-	    returnString.assign("ok");
-		LogMessage(std::string("Reset!"));
+            	SetAnswerTimeoutMs(10000.0);
+        	ret = GetSerialAnswerComPortH(an,"\r\n");
+	    // ret = GetParameters();
+	    // returnString.assign("ok");
+	    //     LogMessage(std::string("Reset!"));
 		return DEVICE_OK;
    }
    else if(command.c_str()[0] == '$' && command.c_str()[1] == 's' && command.c_str()[2] == 'r'){
@@ -540,7 +542,6 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
      LogMessage("Status request.");
             	SetAnswerTimeoutMs(10000.0);
         	ret = GetSerialAnswerComPortH(an,"\r\n");
-           // ret = comPort->Read(an,3,charsRead);
            if (ret != DEVICE_OK)
            {
         	   LogMessage(std::string("answer get error!"));
@@ -771,28 +772,27 @@ int MyShapeokoTinyg::SetRelativePositionSteps(long x, long y)
    SetRelativePositionUm(x*GetStepSizeXUm(), y*GetStepSizeYUm());
    return DEVICE_OK;
 }
+
 int MyShapeokoTinyg::GetPositionUm(double& x, double& y){
   LogMessage("GetPositionUm");
    int ret;
 
    if (!IsPortAvailable()) {
-  LogMessage("1");
      return ERR_NO_PORT_SET;
    }
-  LogMessage("2");
     ret = GetStatus();
 	if (ret != DEVICE_OK)
     return ret;
-  LogMessage("3");
 	x =  MPos[0]*1000.0 ;
 	y =   MPos[1]*1000.0;
    ostringstream os;
-   os << "GetPositionSteps(), X=" << x << ", Y=" << y;
+   os << "GetPositionUm(), X=" << x << ", Y=" << y;
    LogMessage("Output from GetPositionUm:");
-   LogMessage(os.str().c_str(), true);
+   LogMessage(os.str().c_str());
    return DEVICE_OK;
 
 }
+
 int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
 {
   LogMessage("GetPositionSteps");
@@ -809,6 +809,7 @@ int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
    os << "GetPositionSteps(), X=" << x << ", Y=" << y;
    LogMessage(os.str().c_str(), true);
 }
+
 int MyShapeokoTinyg::SetPositionUm(double x, double y){
 	if (!IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
@@ -822,13 +823,14 @@ int MyShapeokoTinyg::SetPositionUm(double x, double y){
 	char buff[100];
 	sprintf(buff, "G00X%fY%f", x/1000.0,y/1000.0);
 	std::string buffAsStdStr = buff;
-	errCode_ = SendCommand(buffAsStdStr,buffAsStdStr); //stage_->MoveBlocking(x_, y_);
+	errCode_ = SendCommand(buffAsStdStr,buffAsStdStr);
 
 	ostringstream os;
 	os << "Move finished with error code: " << errCode_;
 	LogMessage(os.str().c_str(), true);
 	return errCode_;
 }
+
 int MyShapeokoTinyg::SetRelativePositionUm(double dx, double dy){
   if (!IsPortAvailable()) {
     return ERR_NO_PORT_SET;
@@ -856,6 +858,8 @@ int MyShapeokoTinyg::SetRelativePositionUm(double dx, double dy){
  * Performs homing for both axes
  * (required after initialization)
  */
+// TODO(dek): re-enable homing and place call to it in initialization
+// https://github.com/synthetos/TinyG/wiki/Homing-and-Limits-Description-and-Operation
 int MyShapeokoTinyg::Home()
 {
   if (!IsPortAvailable()) {
@@ -976,14 +980,9 @@ int MyShapeokoTinyg::OnMoveTimeout(MM::PropertyBase* pProp, MM::ActionType eAct)
  */
 int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
-  LogMessage("A");
    if (eAct == MM::BeforeGet)
    {
-
-     LogMessage("B");
       pProp->Set(syncStep_);
-     LogMessage("C");
-
    }
    else if (eAct == MM::AfterSet)
    {
@@ -998,29 +997,4 @@ int MyShapeokoTinyg::OnSyncStep(MM::PropertyBase* pProp, MM::ActionType eAct)
 		   return ret;
    }
    return DEVICE_OK;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// private methods
-///////////////////////////////////////////////////////////////////////////////
-
-
-/**
- * Sends move command to both axes and waits for responses, blocking the calling thread.
- * If expected answers do not come within timeout interval, returns with error.
- */
-int MyShapeokoTinyg::MoveBlocking(long x, long y, bool relative)
-{
-   int ret;
-
-   //if (!home_)
-   //   return ERR_HOME_REQUIRED;
-
-   //// send command to X axis
-   //ret = xstage_->MoveBlocking(x, relative);
-   if (ret != DEVICE_OK)
-     return ret;
-   // send command to Y axis
-
-   return ret;//ystage_->MoveBlocking(y, relative);
 }
