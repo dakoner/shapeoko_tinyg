@@ -234,12 +234,10 @@ int MyShapeokoTinyg::Initialize()
    CreateProperty(g_SyncStepProp, "1.0", MM::Float, false, pAct);
    //SetPropertyLimits("Acceleration", 0.0, 150);
 
-  LogMessage("2");
 
    ret = UpdateStatus();
    if (ret != DEVICE_OK)
       return ret;
-  LogMessage("3");
 
    /* From EVA_NDE_Grbl */
 
@@ -308,6 +306,7 @@ Type stringToNum(const std::string& str)
 	return num;
 }
 
+// TODO(dek): report busy when queue is full
 bool MyShapeokoTinyg::Busy()
 {
 	return false;
@@ -380,8 +379,8 @@ int MyShapeokoTinyg::GetStatus()
             x = i->substr(21,10);
           }
           if (i->substr(0, 14) == "Machine state:") {
-            // TODO(dek): save to state variable
             x = i->substr(21,10);
+            SetProperty("Status",x.c_str());
           }
           if (!x.empty()) {
             LogMessage("Parsed line:");
@@ -506,17 +505,12 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
    int ret = DEVICE_OK;
    SetAnswerTimeoutMs(300.0); //for normal command
 
-   // 	if(command.c_str()[0] == '$' && command.c_str()[1] == 'H')
-   //      {
-   //      	// Check that we have a controller:
-   //      	ret = GetStatus();
-   //      	if( DEVICE_OK != ret)
-   //      	return ret;
-   //      	ret = GetParameters();
-   //      	if( DEVICE_OK != ret)
-   //      	return ret;
-   //         	SetAnswerTimeoutMs(60000.0);
-   //      }
+   	if(command == "G28.2 X0 Y0")
+        {
+          LogMessage("setting long timeout.");
+           	SetAnswerTimeoutMs(60000.0);
+        }
+
 
    LogMessage("Write command.");
    ret = SetCommandComPortH(command.c_str(),"\r\n");
@@ -563,15 +557,16 @@ int MyShapeokoTinyg::SendCommand(std::string command, std::string &returnString)
 			   LogMessage(std::string("answer get error!_"));
 			  return ret;
 		   }
-		   LogMessage(std::string(an),true);
+                   LogMessage("answer:");
+		   LogMessage(std::string(an));
 		   //sample:>>? >><Idle,MPos:0.000,0.000,0.000,WPos:0.000,0.000,0.000>
 		   if (an.length() <1)
 			  return DEVICE_ERR;
 		   returnString.assign(an);
-		   if (returnString.find("ok") != std::string::npos)
+ 		   // if (returnString.find("ok") != std::string::npos)
 			   return DEVICE_OK;
-		   else
-			   return DEVICE_ERR;
+		   // else
+		   //         return DEVICE_ERR;
 	   }
 	   catch(...)
 	   {
@@ -810,6 +805,8 @@ int MyShapeokoTinyg::GetPositionSteps(long& x, long& y)
    LogMessage(os.str().c_str(), true);
 }
 
+// TODO(dek): according to DemoCamera.h, this method should not be
+// implemented.
 int MyShapeokoTinyg::SetPositionUm(double x, double y){
 	if (!IsPortAvailable()) {
 		return ERR_NO_PORT_SET;
@@ -821,7 +818,7 @@ int MyShapeokoTinyg::SetPositionUm(double x, double y){
 		lastMode_ = MOVE;
 	}
 	char buff[100];
-	sprintf(buff, "G00X%fY%f", x/1000.0,y/1000.0);
+	sprintf(buff, "G0 X%f Y%f", x/1000.0,y/1000.0);
 	std::string buffAsStdStr = buff;
 	errCode_ = SendCommand(buffAsStdStr,buffAsStdStr);
 
@@ -866,7 +863,13 @@ int MyShapeokoTinyg::Home()
 		return ERR_NO_PORT_SET;
 	}
 	int ret;
-	ret = SetProperty("Command","$H");
+        std::string returnString;
+	ret = SendCommand("G28.2 X0 Y0", returnString);
+        LogMessage("return string from homing:");
+        LogMessage(returnString);
+        LogMessage("Return code");
+        LogMessageCode(ret);
+        LogMessageCode(DEVICE_OK);
 	if (ret != DEVICE_OK)
 	{
 		LogMessage(std::string("Homing error!"));
@@ -875,11 +878,13 @@ int MyShapeokoTinyg::Home()
 	else
 		home_ = true; // successfully homed
    // check status
+        return DEVICE_OK;
 }
 
 /**
  * Stops XY stage immediately. Blocks until done.
  */
+// TODO(dek): implement this
 int MyShapeokoTinyg::Stop()
 {
    int ret;
