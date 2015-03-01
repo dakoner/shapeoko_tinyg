@@ -19,7 +19,7 @@ const char* g_MoveTimeoutProp = "MoveTimeoutMs";
 
 const long xAxisMaxSteps = 2200000L;   // maximum number of steps in X
 const long yAxisMaxSteps = 1500000L;   // maximum number of steps in Y
-const double stepSizeUm = 0.05;        // step size in microns
+const double stepSizeUm = 0.025;        // step size in microns
 const double accelScale = 13.7438;     // scaling factor for acceleration
 const double velocityScale = 134218.0; // scaling factor for velocity
 
@@ -229,10 +229,9 @@ int MyShapeokoTinyg::Initialize()
    CreateProperty(g_MoveTimeoutProp, "10000.0", MM::Float, false, pAct);
    //SetPropertyLimits("Acceleration", 0.0, 150);
 
-   // Sync Step
-   pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnSyncStep);
-   CreateProperty(g_SyncStepProp, "1.0", MM::Float, false, pAct);
-   //SetPropertyLimits("Acceleration", 0.0, 150);
+   // // Sync Step
+   // pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnSyncStep);
+   // CreateProperty(g_SyncStepProp, "1.0", MM::Float, false, pAct);
 
 
    ret = UpdateStatus();
