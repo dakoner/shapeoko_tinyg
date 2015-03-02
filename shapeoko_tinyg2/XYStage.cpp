@@ -7,7 +7,7 @@
 
 CShapeokoTinyGXYStage::CShapeokoTinyGXYStage() :
 CXYStageBase<CShapeokoTinyGXYStage>(),
-stepSize_um_(0.015),
+stepSize_um_(0.025),
 posX_um_(0.0),
 posY_um_(0.0),
 busy_(false),
