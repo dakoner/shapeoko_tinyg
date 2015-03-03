@@ -175,13 +175,10 @@ int ShapeokoTinyGHub::GetControllerVersion(string& version)
    const char* command = "$fv\r\n";
    version = "";
 
-   ret = WriteToComPort(port_.c_str(), (const unsigned char*)command, strlen(command));
-   if (ret != DEVICE_OK)
-      return ret;
-  LogMessage("Wrote to com port");
-
+  LogMessage("Writing to com port");
+  LogMessage(command);
    std::string answer;
-   ret = GetSerialAnswer(port_.c_str(), "\n", answer);
+  ret = SendCommand(command, answer);
    if (ret != DEVICE_OK)
       return ret;
    LogMessage("Got answer:");
@@ -189,6 +186,8 @@ int ShapeokoTinyGHub::GetControllerVersion(string& version)
    std::vector<std::string> tokenInput;
    CDeviceUtils::Tokenize(answer, tokenInput, "\r\n");
    version = tokenInput[1];
+   LogMessage("Got version:");
+   LogMessage(version);
    return ret;
 
 }
