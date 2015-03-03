@@ -116,7 +116,16 @@ int CShapeokoTinyGXYStage::SetPositionSteps(long x, long y)
    timeOutTimer_ = new MM::TimeoutMs(GetCurrentMMTime(),  timeOut);
    posX_um_ = x * stepSize_um_;
    posY_um_ = y * stepSize_um_;
-   int ret = OnXYStagePositionChanged(posX_um_, posY_um_);
+
+   char buff[100];
+   sprintf(buff, "G0 X%f Y%f", posX_um_/1000., posY_um_/1000.);
+   std::string buffAsStdStr = buff;
+   ShapeokoTinyGHub* pHub = static_cast<ShapeokoTinyGHub*>(GetParentHub());
+   int ret = pHub->SendCommand(buffAsStdStr,buffAsStdStr);
+   if (ret != DEVICE_OK)
+      return ret;
+
+   ret = OnXYStagePositionChanged(posX_um_, posY_um_);
    if (ret != DEVICE_OK)
       return ret;
 
