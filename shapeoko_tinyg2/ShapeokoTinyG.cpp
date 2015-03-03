@@ -153,9 +153,23 @@ int ShapeokoTinyGHub::Initialize()
    // synchronize all properties
    // --------------------------
 
+   ret = DEVICE_OK;
+   const char* command = "G90";
+   version = "";
+
+  LogMessage("Writing to com port");
+  LogMessage(command);
+   std::string answer;
+  ret = SendCommand(command, answer);
+   if (ret != DEVICE_OK)
+      return ret;
+   LogMessage("Got answer:");
+   LogMessage(answer.c_str());
+
    ret = GetStatus();
    if (ret != DEVICE_OK)
       return ret;
+
 
    ret = UpdateStatus();
    if (ret != DEVICE_OK)
