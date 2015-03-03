@@ -149,7 +149,7 @@ int ShapeokoTinyGHub::Initialize()
    //    return ret;
 
    // // turn off verbose serial debug messages
-   // GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "0");
+   GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "1");
    // synchronize all properties
    // --------------------------
 
@@ -208,7 +208,8 @@ int ShapeokoTinyGHub::DetectInstalledDevices()
       bool success = GetDeviceName(i, deviceName, MM::MaxStrLength);
       if (success && (strcmp(hubName, deviceName) != 0))
       {
-        LogMessage("Got device", deviceName);
+        LogMessage("Got device");
+			LogMessage(deviceName);
          MM::Device* pDev = CreateDevice(deviceName);
          AddInstalledDevice(pDev);
       }
