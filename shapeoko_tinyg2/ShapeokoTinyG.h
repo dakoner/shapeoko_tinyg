@@ -44,7 +44,6 @@
 // #define ERR_IN_SEQUENCE          104
 // #define ERR_SEQUENCE_INACTIVE    105
 #define ERR_STAGE_MOVING         110
-// #define HUB_NOT_AVAILABLE        107
 
 #define ERR_UNKNOWN_POSITION 101
 #define ERR_INITIALIZE_FAILED 102
@@ -75,6 +74,7 @@ public:
    bool Busy() { return busy_;} ;
 
    // property handlers
+  int OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct);
    int OnPort(MM::PropertyBase* pPropt, MM::ActionType eAct);
    int OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct);
 
@@ -99,17 +99,19 @@ public:
                 return GetSerialAnswer(port_.c_str(),term,ans);
         }
    int GetStatus(); 
+  int GetControllerVersion(std::string& version);
 
 private:
    void GetPeripheralInventory();
    std::vector<std::string> peripherals_;
    bool initialized_;
    bool busy_;
-
+  std::string version_;
+   MMThreadLock lock_;
+   MMThreadLock executeLock_;
    std::string port_;
    bool portAvailable_;
    std::string commandResult_;
-   MMThreadLock executeLock_;
    double MPos[3];
    double WPos[3];
 };

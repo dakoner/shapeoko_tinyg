@@ -39,6 +39,7 @@ using namespace std;
 // to load particular device from the "ShapeokoTinyGCamera.dll" library
 const char* g_XYStageDeviceName = "DXYStage";
 const char* g_HubDeviceName = "DHub";
+const char* g_versionProp = "Version";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Exported MMDevice API
@@ -80,18 +81,120 @@ ShapeokoTinyGHub::ShapeokoTinyGHub():
       initialized_(false),
       busy_(false)
 {
+  LogMessage("Constructor");
   CPropertyAction* pAct  = new CPropertyAction(this, &ShapeokoTinyGHub::OnPort);
   CreateProperty(MM::g_Keyword_Port, "Undefined", MM::String, false, pAct, true);
 }
 
 int ShapeokoTinyGHub::Initialize()
 {
+  LogMessage("Initialize");
+   /* From EVA's XYStage */
+   int ret = DEVICE_ERR;
+
+   // initialize device and get hardware information
+
+
+   // confirm that the device is supported
+
+
+   // check if we are already homed
+
+   CPropertyAction* pAct;
+
+   // Step size
+   // CreateProperty(g_StepSizeXProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
+   // CreateProperty(g_StepSizeYProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
+
+   // Max Speed
+   // pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnMaxVelocity);
+   // CreateProperty(g_MaxVelocityProp, "100.0", MM::Float, false, pAct);
+   //SetPropertyLimits(g_MaxVelocityProp, 0.0, 31999.0);
+
+   // Acceleration
+   // pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnAcceleration);
+   // CreateProperty(g_AccelProp, "100.0", MM::Float, false, pAct);
+   //SetPropertyLimits("Acceleration", 0.0, 150);
+
+   // Move timeout
+   // pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnMoveTimeout);
+   // CreateProperty(g_MoveTimeoutProp, "10000.0", MM::Float, false, pAct);
+   //SetPropertyLimits("Acceleration", 0.0, 150);
+
+   // // Sync Step
+   // pAct = new CPropertyAction (this, &MyShapeokoTinyg::OnSyncStep);
+   // CreateProperty(g_SyncStepProp, "1.0", MM::Float, false, pAct);
+
+
+   ret = UpdateStatus();
+   if (ret != DEVICE_OK)
+      return ret;
+
+   /* From EVA_NDE_Grbl */
+
+   MMThreadGuard myLock(lock_);
+
+   ret = GetControllerVersion(version_);
+   if( DEVICE_OK != ret)
+      return ret;
+
+   pAct = new CPropertyAction(this, &ShapeokoTinyGHub::OnVersion);
+   std::ostringstream sversion;
+   sversion << version_;
+   CreateProperty(g_versionProp, sversion.str().c_str(), MM::String, true, pAct);
+
+   // pAct = new CPropertyAction(this, &MyShapeokoTinyg::OnCommand);
+   // ret = CreateProperty("Command","", MM::String, false, pAct);
+   // if (DEVICE_OK != ret)
+   //    return ret;
+
+   // // turn off verbose serial debug messages
+   // GetCoreCallback()->SetDeviceProperty(port_.c_str(), "Verbose", "0");
+   // synchronize all properties
+   // --------------------------
+
+   ret = GetStatus();
+   if (ret != DEVICE_OK)
+      return ret;
+
+   ret = UpdateStatus();
+   if (ret != DEVICE_OK)
+      return ret;
+
   	initialized_ = true;
 	return DEVICE_OK;
 }
 
+// private and expects caller to:
+// 1. guard the port
+// 2. purge the port
+int ShapeokoTinyGHub::GetControllerVersion(string& version)
+{
+  LogMessage("GetControllerVersion");
+   int ret = DEVICE_OK;
+   const char* command = "$fv\r\n";
+   version = "";
+
+   ret = WriteToComPort(port_.c_str(), (const unsigned char*)command, strlen(command));
+   if (ret != DEVICE_OK)
+      return ret;
+  LogMessage("Wrote to com port");
+
+   std::string answer;
+   ret = GetSerialAnswer(port_.c_str(), "\n", answer);
+   if (ret != DEVICE_OK)
+      return ret;
+   LogMessage("Got answer:");
+   LogMessage(answer.c_str());
+   std::vector<std::string> tokenInput;
+   CDeviceUtils::Tokenize(answer, tokenInput, "\r\n");
+   version = tokenInput[1];
+   return ret;
+
+}
 int ShapeokoTinyGHub::DetectInstalledDevices()
 {
+  LogMessage("DetectInstalledDevices");
    ClearInstalledDevices();
 
    // make sure this method is called before we look for available devices
@@ -102,9 +205,11 @@ int ShapeokoTinyGHub::DetectInstalledDevices()
    for (unsigned i=0; i<GetNumberOfDevices(); i++)
    {
       char deviceName[MM::MaxStrLength];
+      LogMessage("Get device");
       bool success = GetDeviceName(i, deviceName, MM::MaxStrLength);
       if (success && (strcmp(hubName, deviceName) != 0))
       {
+        LogMessage("Got device", deviceName);
          MM::Device* pDev = CreateDevice(deviceName);
          AddInstalledDevice(pDev);
       }
@@ -117,8 +222,17 @@ void ShapeokoTinyGHub::GetName(char* pName) const
    CDeviceUtils::CopyLimitedString(pName, g_HubDeviceName);
 }
 
+int ShapeokoTinyGHub::OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct)
+{
+   if (pAct == MM::BeforeGet)
+   {
+     pProp->Set(version_.c_str());
+   }
+   return DEVICE_OK;
+}
 int ShapeokoTinyGHub::OnPort(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
+  LogMessage("OnPort");
    if (pAct == MM::BeforeGet)
    {
       pProp->Set(port_.c_str());
@@ -133,6 +247,7 @@ int ShapeokoTinyGHub::OnPort(MM::PropertyBase* pProp, MM::ActionType pAct)
 
 int ShapeokoTinyGHub::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
+  LogMessage("OnCommand");
    if (pAct == MM::BeforeGet)
    {
 	   pProp->Set(commandResult_.c_str());
@@ -348,17 +463,6 @@ int ShapeokoTinyGHub::GetStatus()
     return ret;
    }
    LogMessage("returnString=" + returnString);
-       // X position:          0.000 mm
-       // Y position:          0.000 mm
-       // Z position:          0.000 mm
-       // A position:          0.000 deg
-       // Feed rate:           0.000 mm/min
-       // Velocity:            0.000 mm/min
-       // Units:               G21 - millimeter mode
-       // Coordinate system:   G54 - coordinate system 1
-       // Distance mode:       G90 - absolute distance mode
-       // Feed rate mode:      G94 - units-per-minute mode (i.e. feedrate mode)
-       // Machine state:       Ready
    std::vector<std::string> tokenInput;
    //      char* pEnd;
    	CDeviceUtils::Tokenize(returnString, tokenInput, "\r\n");

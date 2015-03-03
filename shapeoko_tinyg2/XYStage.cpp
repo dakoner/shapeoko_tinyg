@@ -35,11 +35,13 @@ const char* NoHubError = "Parent Hub not defined.";
 
 void CShapeokoTinyGXYStage::GetName(char* Name) const
 {
+  LogMessage("XYStage: GetName");
    CDeviceUtils::CopyLimitedString(Name, g_XYStageDeviceName);
 }
 
 int CShapeokoTinyGXYStage::Initialize()
 {
+  LogMessage("XYStage: initialize");
    ShapeokoTinyGHub* pHub = static_cast<ShapeokoTinyGHub*>(GetParentHub());
    if (pHub)
    {
@@ -98,6 +100,7 @@ bool CShapeokoTinyGXYStage::Busy()
 
 int CShapeokoTinyGXYStage::SetPositionSteps(long x, long y)
 {
+  LogMessage("XYStage: SetPositionSteps");
    if (timeOutTimer_ != 0)
    {
       if (!timeOutTimer_->expired(GetCurrentMMTime()))
@@ -122,6 +125,7 @@ int CShapeokoTinyGXYStage::SetPositionSteps(long x, long y)
 
 int CShapeokoTinyGXYStage::GetPositionSteps(long& x, long& y)
 {
+  LogMessage("XYStage: GetPositionSteps");
    x = (long)(posX_um_ / stepSize_um_);
    y = (long)(posY_um_ / stepSize_um_);
    return DEVICE_OK;
@@ -129,6 +133,7 @@ int CShapeokoTinyGXYStage::GetPositionSteps(long& x, long& y)
 
 int CShapeokoTinyGXYStage::SetRelativePositionSteps(long x, long y)
 {
+  LogMessage("XYStage: SetRelativePositioNSteps");
    long xSteps, ySteps;
    GetPositionSteps(xSteps, ySteps);
 
