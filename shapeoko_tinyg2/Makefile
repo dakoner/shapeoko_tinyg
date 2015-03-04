@@ -4,11 +4,14 @@ install: libmmgr_dal_ShapeokoTinyG.so.0
 	cp libmmgr_dal_ShapeokoTinyG.so.0 /usr/local/google/home/dek/ImageJ
 
 libmmgr_dal_ShapeokoTinyG.so.0: ShapeokoTinyG.o XYStage.o
-	g++  -fPIC -DPIC -shared  ShapeokoTinyG.o XYStage.o  -Wl,--whole-archive /usr/local/google/home/dek/mm/micromanager-1.4/DeviceAdapters/../MMDevice/.libs/libMMDevice.a -Wl,--no-whole-archive  -ldl  -pthread -O2   -pthread -Wl,-soname -Wl,libmmgr_dal_ShapeokoTinyG.so.0 -o libmmgr_dal_ShapeokoTinyG.so.0
+	g++  -fPIC -DPIC -shared -o libmmgr_dal_ShapeokoTinyG.so.0   ShapeokoTinyG.o XYStage.o
+#ZStage.o
 
 ShapeokoTinyG.o: ShapeokoTinyG.cpp ShapeokoTinyG.h
 
 XYStage.o: XYStage.cpp XYStage.h
+
+# ZStage.o: ZStage.cpp ZStage.h
 
 clean:
 	rm -f *.o *.so.0

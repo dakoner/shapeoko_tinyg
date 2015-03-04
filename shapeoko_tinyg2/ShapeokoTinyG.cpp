@@ -155,8 +155,6 @@ int ShapeokoTinyGHub::Initialize()
 
    ret = DEVICE_OK;
    const char* command = "G90";
-   version = "";
-
   LogMessage("Writing to com port");
   LogMessage(command);
    std::string answer;
