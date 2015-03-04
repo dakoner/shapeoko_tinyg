@@ -12,7 +12,7 @@ posX_um_(0.0),
 posY_um_(0.0),
 busy_(false),
 timeOutTimer_(0),
-velocity_(10.0), // in micron per second
+velocity_(100000.0), // in micron per second
 initialized_(false),
 lowerLimit_(0.0),
 upperLimit_(20000.0)

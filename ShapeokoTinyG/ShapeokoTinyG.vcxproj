@@ -148,10 +148,12 @@
   <ItemGroup>
     <ClInclude Include="..\shapeoko_tinyg2\ShapeokoTinyG.h" />
     <ClInclude Include="..\shapeoko_tinyg2\XYStage.h" />
+    <ClInclude Include="..\shapeoko_tinyg2\ZStage.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shapeoko_tinyg2\ShapeokoTinyG.cpp" />
     <ClCompile Include="..\shapeoko_tinyg2\XYStage.cpp" />
+    <ClCompile Include="..\shapeoko_tinyg2\ZStage.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

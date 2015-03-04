@@ -21,12 +21,18 @@
     <ClInclude Include="..\shapeoko_tinyg2\XYStage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\shapeoko_tinyg2\ZStage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shapeoko_tinyg2\ShapeokoTinyG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shapeoko_tinyg2\XYStage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shapeoko_tinyg2\ZStage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

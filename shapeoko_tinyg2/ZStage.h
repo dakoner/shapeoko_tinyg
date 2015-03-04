@@ -10,7 +10,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // Error codes
 //
-#define ERR_UNKNOWN_POSITION         10002
+
 #define ERR_INVALID_SPEED            10003
 #define ERR_PORT_CHANGE_FORBIDDEN    10004
 #define ERR_SET_POSITION_FAILED      10005
@@ -74,10 +74,13 @@ private:
    int GetUpperLimit();
    int GetLowerLimit();
    double stepSize_um_;
-   std::string focusFirmware_;
-   std::string firmware_;
+      double posZ_um_;
+
+
    bool initialized_;
    double lowerLimit_;
+   MM::TimeoutMs* timeOutTimer_;
+
    double upperLimit_;
    typedef enum {
       ZMSF_MOVING = 0x0002, // trajectory is in progress
