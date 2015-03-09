@@ -118,12 +118,13 @@ int ZStage::GetPositionUm(double& pos)
 int ZStage::SetPositionSteps(long steps)
 {
   LogMessage("ZStage: SetPositionSteps");
-   if (timeOutTimer_ != 0)
+  /* if (timeOutTimer_ != 0)
    {
       if (!timeOutTimer_->expired(GetCurrentMMTime()))
          return ERR_STAGE_MOVING;
       delete (timeOutTimer_);
    }
+   */
    posZ_um_ = steps * stepSize_um_;
    
 
@@ -147,10 +148,8 @@ int ZStage::SetPositionSteps(long steps)
  */
 int ZStage::GetPositionSteps(long& steps)
 {
-	ShapeokoTinyGHub* pHub = static_cast<ShapeokoTinyGHub*>(GetParentHub());
-   int ret = pHub->GetStatus();
-   if (ret != DEVICE_OK)
-      return ret;
+   steps = (long)(posZ_um_ / stepSize_um_);
+
   // TODO(dek): implement status to get Z position
    return DEVICE_OK;
 }
