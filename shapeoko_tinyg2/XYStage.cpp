@@ -88,13 +88,16 @@ int CShapeokoTinyGXYStage::Shutdown()
 
 bool CShapeokoTinyGXYStage::Busy()
 {
+  LogMessage("XYStage: Busy called");
    if (timeOutTimer_ == 0)
       return false;
    if (timeOutTimer_->expired(GetCurrentMMTime()))
    {
       // delete(timeOutTimer_);
+     LogMessage("XYStage: Busy return false");
       return false;
    }
+     LogMessage("XYStage: Busy return true");
    return true;
 }
 
@@ -112,7 +115,8 @@ int CShapeokoTinyGXYStage::SetPositionSteps(long x, long y)
    double difX = newPosX - posX_um_;
    double difY = newPosY - posY_um_;
    double distance = sqrt( (difX * difX) + (difY * difY) );
-   long timeOut = (long) (distance / velocity_);
+   // long timeOut = (long) (distance / velocity_);
+   long timeOut = 1000;
    timeOutTimer_ = new MM::TimeoutMs(GetCurrentMMTime(),  timeOut);
    posX_um_ = x * stepSize_um_;
    posY_um_ = y * stepSize_um_;
