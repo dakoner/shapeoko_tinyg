@@ -111,7 +111,7 @@ int ShapeokoTinyGHub::Initialize()
    CPropertyAction* pAct;
 
    // Step size
-   // CreateProperty(g_StepSizeXProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
+   //CreateProperty(g_StepSizeXProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
    // CreateProperty(g_StepSizeYProp, CDeviceUtils::ConvertToString(stepSizeUm), MM::Float, true);
 
    // Max Speed

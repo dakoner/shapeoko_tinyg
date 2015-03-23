@@ -1,5 +1,6 @@
 #include "ShapeokoTinyG.h"
 #include "XYStage.h"
+const char* g_StepSizeProp = "Step Size";
 
 ///////////////////////////////////////////////////////////////////////////////
 // CShapeokoTinyGXYStage implementation
@@ -67,6 +68,9 @@ int CShapeokoTinyGXYStage::Initialize()
    ret = CreateStringProperty(MM::g_Keyword_Description, "ShapeokoTinyG XY stage driver", true);
    if (DEVICE_OK != ret)
       return ret;
+
+   CPropertyAction* pAct1 = new CPropertyAction (this, &CShapeokoTinyGXYStage::OnStepSize);
+   CreateProperty(g_StepSizeProp, CDeviceUtils::ConvertToString(stepSize_um_), MM::Float, false);
 
    ret = UpdateStatus();
    if (ret != DEVICE_OK)
@@ -151,6 +155,30 @@ int CShapeokoTinyGXYStage::SetRelativePositionSteps(long x, long y)
    GetPositionSteps(xSteps, ySteps);
 
    return this->SetPositionSteps(xSteps+x, ySteps+y);
+}
+int CShapeokoTinyGXYStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+    if (eAct == MM::BeforeGet)
+    {
+        
+
+        pProp->Set(stepSize_um_);
+    }
+    else if (eAct == MM::AfterSet)
+    {
+        if (initialized_)
+        {
+            double stepSize_um;
+            pProp->Get(stepSize_um);
+            stepSize_um_ = stepSize_um;
+        }
+
+    }
+
+   
+    LogMessage("Set step size");
+
+    return DEVICE_OK;
 }
 
 
