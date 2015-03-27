@@ -59,6 +59,8 @@ public:
    // ----------------
    int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
 
+   int OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct);
+
 private:
    double stepSize_um_;
    double posX_um_;
