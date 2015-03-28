@@ -1,6 +1,8 @@
 #include "ShapeokoTinyG.h"
 #include "XYStage.h"
 const char* g_StepSizeProp = "Step Size";
+const char* g_MaxVelocityProp = "Maximum Velocity";
+const char* g_AccelProp = "Acceleration";
 
 ///////////////////////////////////////////////////////////////////////////////
 // CShapeokoTinyGXYStage implementation
@@ -9,11 +11,12 @@ const char* g_StepSizeProp = "Step Size";
 CShapeokoTinyGXYStage::CShapeokoTinyGXYStage() :
     CXYStageBase<CShapeokoTinyGXYStage>(),
     stepSize_um_(0.025),
+    max_velocity_(1000),
+    acceleration_(100),
     posX_um_(0.0),
     posY_um_(0.0),
     busy_(false),
     timeOutTimer_(0),
-    velocity_(100000.0), // in micron per second
     initialized_(false),
     lowerLimit_(0.0),
     upperLimit_(20000.0)
@@ -69,8 +72,21 @@ int CShapeokoTinyGXYStage::Initialize()
   if (DEVICE_OK != ret)
     return ret;
 
-  CPropertyAction* pAct1 = new CPropertyAction (this, &CShapeokoTinyGXYStage::OnStepSize);
-  CreateProperty(g_StepSizeProp, CDeviceUtils::ConvertToString(stepSize_um_), MM::Float, false);
+  CPropertyAction* pAct = new CPropertyAction (this, &CShapeokoTinyGXYStage::OnStepSize);
+  CreateProperty(g_StepSizeProp, CDeviceUtils::ConvertToString(stepSize_um_), MM::Float, false, pAct);
+
+  // Max Speed
+  pAct = new CPropertyAction (this, &CShapeokoTinyGXYStage::OnMaxVelocity);
+  CreateProperty(g_MaxVelocityProp, CDeviceUtils::ConvertToString(max_velocity_), MM::Float, false, pAct);
+  SetPropertyLimits(g_MaxVelocityProp, 0.0, 1000.0);
+
+  // Acceleration
+  pAct = new CPropertyAction (this, &CShapeokoTinyGXYStage::OnAcceleration);
+  CreateProperty(g_AccelProp, CDeviceUtils::ConvertToString(acceleration_), MM::Float, false, pAct);
+  SetPropertyLimits("Acceleration", 0.0, 1000);
+
+
+
 
   ret = UpdateStatus();
   if (ret != DEVICE_OK)
@@ -201,6 +217,58 @@ int CShapeokoTinyGXYStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eA
 
    
   LogMessage("Set step size");
+
+  return DEVICE_OK;
+}
+
+// TODO(dek): these should send actual commands to update the device
+int CShapeokoTinyGXYStage::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+  if (eAct == MM::BeforeGet)
+  {
+        
+
+    pProp->Set(max_velocity_);
+  }
+  else if (eAct == MM::AfterSet)
+  {
+    if (initialized_)
+    {
+      double max_velocity;
+      pProp->Get(max_velocity);
+      max_velocity_ = max_velocity;
+    }
+
+  }
+
+   
+  LogMessage("Set velocity");
+
+  return DEVICE_OK;
+}
+
+
+int CShapeokoTinyGXYStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
+{
+  if (eAct == MM::BeforeGet)
+  {
+        
+
+    pProp->Set(acceleration_);
+  }
+  else if (eAct == MM::AfterSet)
+  {
+    if (initialized_)
+    {
+      double acceleration;
+      pProp->Get(acceleration);
+      acceleration_ = acceleration;
+    }
+
+  }
+
+   
+  LogMessage("Set acceleration");
 
   return DEVICE_OK;
 }
