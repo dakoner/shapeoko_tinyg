@@ -67,7 +67,7 @@ MODULE_API MM::Device* CreateDevice(const char* deviceName)
     if (strcmp(deviceName, g_ZStageDeviceName) == 0)
    {
       // create stage
-      return new ZStage();
+      return new CShapeokoTinyGZStage();
    }
    else if (strcmp(deviceName, g_HubDeviceName) == 0)
    {

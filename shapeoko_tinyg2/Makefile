@@ -3,15 +3,15 @@ CXXFLAGS=-c -fPIC -DPACKAGE_NAME=\"Micro-Manager\" -DPACKAGE_TARNAME=\"micro-man
 install: libmmgr_dal_ShapeokoTinyG.so.0
 	cp libmmgr_dal_ShapeokoTinyG.so.0 /usr/local/google/home/dek/ImageJ
 
-libmmgr_dal_ShapeokoTinyG.so.0: ShapeokoTinyG.o XYStage.o
-	g++  -fPIC -DPIC -shared -o libmmgr_dal_ShapeokoTinyG.so.0   ShapeokoTinyG.o XYStage.o
-#ZStage.o
+libmmgr_dal_ShapeokoTinyG.so.0: ShapeokoTinyG.o XYStage.o ZStage.o
+	g++  -fPIC -DPIC -shared -o libmmgr_dal_ShapeokoTinyG.so.0   ShapeokoTinyG.o XYStage.o ZStage.o -L/usr/local/google/home/dek/mm/micromanager-1.4/MMDevice/.libs -lMMDevice
 
 ShapeokoTinyG.o: ShapeokoTinyG.cpp ShapeokoTinyG.h
 
 XYStage.o: XYStage.cpp XYStage.h
 
-# ZStage.o: ZStage.cpp ZStage.h
+ZStage.o: ZStage.cpp ZStage.h
+
 
 clean:
 	rm -f *.o *.so.0

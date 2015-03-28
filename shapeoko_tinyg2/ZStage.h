@@ -27,11 +27,11 @@
 
 // Axioskope 2 Z stage
 //
-class ZStage : public CStageBase<ZStage>
+class CShapeokoTinyGZStage : public CStageBase<CShapeokoTinyGZStage>
 {
 public:
-   ZStage();
-   ~ZStage();
+   CShapeokoTinyGZStage();
+   ~CShapeokoTinyGZStage();
 
    bool Busy();
    void GetName(char* pszName) const;

@@ -17,11 +17,13 @@
 #include "ZStage.h"
 using namespace std;
 
+#include "MMDevice.h"
+#include "DeviceBase.h"
 
 extern const char* g_ZStageDeviceName;
 extern const char* g_Keyword_LoadSample;
 
-ZStage::ZStage() :
+CShapeokoTinyGZStage::CShapeokoTinyGZStage() :
 // http://www.shapeoko.com/wiki/index.php/Zaxis_ACME
 stepSize_um_ (5.),
 	posZ_um_(0.0),
@@ -33,17 +35,17 @@ initialized_ (false)
    SetErrorText(ERR_NO_FOCUS_DRIVE, "No focus drive found in this microscopes");
 }
 
-ZStage::~ZStage()
+CShapeokoTinyGZStage::~CShapeokoTinyGZStage()
 {
    Shutdown();
 }
 
-void ZStage::GetName(char* Name) const
+void CShapeokoTinyGZStage::GetName(char* Name) const
 {
    CDeviceUtils::CopyLimitedString(Name, g_ZStageDeviceName);
 }
 
-int ZStage::Initialize()
+int CShapeokoTinyGZStage::Initialize()
 {
   
 	 InitializeDefaultErrorMessages();
@@ -64,7 +66,7 @@ int ZStage::Initialize()
       return ret;
 
    // Position
-   CPropertyAction* pAct = new CPropertyAction(this, &ZStage::OnPosition);
+   CPropertyAction* pAct = new CPropertyAction(this, &CShapeokoTinyGZStage::OnPosition);
    ret = CreateProperty(MM::g_Keyword_Position, "0", MM::Float,false, pAct);
    if (ret != DEVICE_OK)
       return ret;
@@ -79,19 +81,19 @@ int ZStage::Initialize()
    return DEVICE_OK;
 }
 
-int ZStage::Shutdown()
+int CShapeokoTinyGZStage::Shutdown()
 {
    initialized_ = false;
 
    return DEVICE_OK;
 }
 
-bool ZStage::Busy()
+bool CShapeokoTinyGZStage::Busy()
 {
    return false;
 }
 
-int ZStage::SetPositionUm(double pos)
+int CShapeokoTinyGZStage::SetPositionUm(double pos)
 {
    long steps = (long)(pos / stepSize_um_ + 0.5);
    int ret = SetPositionSteps(steps);
@@ -101,7 +103,7 @@ int ZStage::SetPositionUm(double pos)
    return DEVICE_OK;
 }
 
-int ZStage::GetPositionUm(double& pos)
+int CShapeokoTinyGZStage::GetPositionUm(double& pos)
 {
    long steps;
    int ret = GetPositionSteps(steps);
@@ -115,7 +117,7 @@ int ZStage::GetPositionUm(double& pos)
 /*
  * Requests movement to new z postion from the controller.  This function does the actual communication
  */
-int ZStage::SetPositionSteps(long steps)
+int CShapeokoTinyGZStage::SetPositionSteps(long steps)
 {
   LogMessage("ZStage: SetPositionSteps");
   /* if (timeOutTimer_ != 0)
@@ -146,7 +148,7 @@ int ZStage::SetPositionSteps(long steps)
 /*
  * Requests current z postion from the controller.  This function does the actual communication
  */
-int ZStage::GetPositionSteps(long& steps)
+int CShapeokoTinyGZStage::GetPositionSteps(long& steps)
 {
    steps = (long)(posZ_um_ / stepSize_um_);
 
@@ -154,7 +156,7 @@ int ZStage::GetPositionSteps(long& steps)
    return DEVICE_OK;
 }
 
-int ZStage::SetOrigin()
+int CShapeokoTinyGZStage::SetOrigin()
 {
    // const char* cmd ="HPZP0" ;
    // int ret = g_hub.ExecuteCommand(*this, *GetCoreCallback(),  cmd);
@@ -174,7 +176,7 @@ int ZStage::SetOrigin()
 /*
  * Uses the Get and Set PositionUm functions to communicate with controller
  */
-int ZStage::OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct)
+int CShapeokoTinyGZStage::OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
    if (eAct == MM::BeforeGet)
    {
