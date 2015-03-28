@@ -29,33 +29,33 @@
 //
 class CShapeokoTinyGZStage : public CStageBase<CShapeokoTinyGZStage>
 {
-public:
-   CShapeokoTinyGZStage();
-   ~CShapeokoTinyGZStage();
+ public:
+  CShapeokoTinyGZStage();
+  ~CShapeokoTinyGZStage();
 
-   bool Busy();
-   void GetName(char* pszName) const;
+  bool Busy();
+  void GetName(char* pszName) const;
 
-   int Initialize();
-   int Shutdown();
+  int Initialize();
+  int Shutdown();
 
-   // Stage API
-   virtual int SetPositionUm(double pos);
-   virtual int GetPositionUm(double& pos);
+  // Stage API
+  virtual int SetPositionUm(double pos);
+  virtual int GetPositionUm(double& pos);
   virtual double GetStepSize() const;
-   virtual int SetPositionSteps(long steps) ;
-   virtual int GetPositionSteps(long& steps);
-   virtual int SetOrigin();
+  virtual int SetPositionSteps(long steps) ;
+  virtual int GetPositionSteps(long& steps);
+  virtual int SetOrigin();
   virtual int GetLimits(double& lower, double& upper);
 
   bool IsContinuousFocusDrive() const;
 
-   // action interface
-   // ----------------
-   int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
-   int OnLoadSample(MM::PropertyBase* pProp, MM::ActionType eAct);
+  // action interface
+  // ----------------
+  int OnPosition(MM::PropertyBase* pProp, MM::ActionType eAct);
+  int OnLoadSample(MM::PropertyBase* pProp, MM::ActionType eAct);
 
-   // Sequence functions (unimplemented)
+  // Sequence functions (unimplemented)
   int IsStageSequenceable(bool& isSequenceable) const;
   int GetStageSequenceMaxLength(long& nrEvents) const;
   int StartStageSequence();
@@ -64,23 +64,23 @@ public:
   int AddToStageSequence(double /*position*/);
   int SendStageSequence();
 
-private:
-   int GetFocusFirmwareVersion();
-   int GetUpperLimit();
-   int GetLowerLimit();
-   double stepSize_um_;
-      double posZ_um_;
+ private:
+  int GetFocusFirmwareVersion();
+  int GetUpperLimit();
+  int GetLowerLimit();
+  double stepSize_um_;
+  double posZ_um_;
 
 
-   bool initialized_;
-   double lowerLimit_;
-   MM::TimeoutMs* timeOutTimer_;
+  bool initialized_;
+  double lowerLimit_;
+  MM::TimeoutMs* timeOutTimer_;
 
-   double upperLimit_;
-   typedef enum {
-      ZMSF_MOVING = 0x0002, // trajectory is in progress
-      ZMSF_SETTLE = 0x0004  // settling after movement
-   } ZmStatFlags;
+  double upperLimit_;
+  typedef enum {
+    ZMSF_MOVING = 0x0002, // trajectory is in progress
+    ZMSF_SETTLE = 0x0004  // settling after movement
+  } ZmStatFlags;
 
 };
 
