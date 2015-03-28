@@ -62,58 +62,49 @@
 
 class ShapeokoTinyGHub : public HubBase<ShapeokoTinyGHub>
 {
-public:
+ public:
   ShapeokoTinyGHub();
-  ~ShapeokoTinyGHub() { Shutdown();}
+  ~ShapeokoTinyGHub();
 
-   // Device API
-   // ---------
-   int Initialize();
-  int Shutdown() {initialized_ = false; return DEVICE_OK;};
-   void GetName(char* pName) const; 
-   bool Busy() { return busy_;} ;
+  // Device API
+  // ---------
+  int Initialize();
+  int Shutdown();
+  void GetName(char* pName) const; 
+  bool Busy();
 
-   // property handlers
+  // property handlers
   int OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct);
-   int OnPort(MM::PropertyBase* pPropt, MM::ActionType eAct);
-   int OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct);
+  int OnPort(MM::PropertyBase* pPropt, MM::ActionType eAct);
+  int OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct);
 
-   // HUB api
-   int DetectInstalledDevices();
+  // HUB api
+  int DetectInstalledDevices();
 
-   int SendCommand(std::string command, std::string &returnString);
-   int SetAnswerTimeoutMs(double timout);
-   MM::DeviceDetectionStatus DetectDevice(void);
-   int PurgeComPortH() {return PurgeComPort(port_.c_str());}
-   int WriteToComPortH(const unsigned char* command, unsigned len) {return WriteToComPort(port_.c_str(), command, len);}
-   int ReadFromComPortH(unsigned char* answer, unsigned maxLen, unsigned long& bytesRead)
-   {
-      return ReadFromComPort(port_.c_str(), answer, maxLen, bytesRead);
-   }
-   int SetCommandComPortH(const char* command, const char* term)
-   {
-           return SendSerialCommand(port_.c_str(),command,term);
-   }
-    int GetSerialAnswerComPortH (std::string& ans,  const char* term)
-        {
-                return GetSerialAnswer(port_.c_str(),term,ans);
-        }
-   int GetStatus(); 
+  int SendCommand(std::string command, std::string &returnString);
+  int SetAnswerTimeoutMs(double timout);
+  MM::DeviceDetectionStatus DetectDevice(void);
+  int PurgeComPortH();
+  int WriteToComPortH(const unsigned char* command, unsigned len);
+  int ReadFromComPortH(unsigned char* answer, unsigned maxLen, unsigned long& bytesRead);
+  int SetCommandComPortH(const char* command, const char* term);
+  int GetSerialAnswerComPortH (std::string& ans,  const char* term);
+  int GetStatus(); 
   int GetControllerVersion(std::string& version);
 
-private:
-   void GetPeripheralInventory();
-   std::vector<std::string> peripherals_;
-   bool initialized_;
-   bool busy_;
+ private:
+  void GetPeripheralInventory();
+  std::vector<std::string> peripherals_;
+  bool initialized_;
+  bool busy_;
   std::string version_;
-   MMThreadLock lock_;
-   MMThreadLock executeLock_;
-   std::string port_;
-   bool portAvailable_;
-   std::string commandResult_;
-   double MPos[3];
-   double WPos[3];
+  MMThreadLock lock_;
+  MMThreadLock executeLock_;
+  std::string port_;
+  bool portAvailable_;
+  std::string commandResult_;
+  double MPos[3];
+  double WPos[3];
 };
 
 

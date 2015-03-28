@@ -42,18 +42,13 @@ public:
    // Stage API
    virtual int SetPositionUm(double pos);
    virtual int GetPositionUm(double& pos);
-   virtual double GetStepSize() const {return stepSize_um_;}
+  virtual double GetStepSize() const;
    virtual int SetPositionSteps(long steps) ;
    virtual int GetPositionSteps(long& steps);
    virtual int SetOrigin();
-   virtual int GetLimits(double& lower, double& upper)
-   {
-      lower = lowerLimit_;
-      upper = upperLimit_;
-      return DEVICE_OK;
-   }
+  virtual int GetLimits(double& lower, double& upper);
 
-   bool IsContinuousFocusDrive() const {return false;}
+  bool IsContinuousFocusDrive() const;
 
    // action interface
    // ----------------
@@ -61,13 +56,13 @@ public:
    int OnLoadSample(MM::PropertyBase* pProp, MM::ActionType eAct);
 
    // Sequence functions (unimplemented)
-   int IsStageSequenceable(bool& isSequenceable) const {isSequenceable = false; return DEVICE_OK;}
-   int GetStageSequenceMaxLength(long& nrEvents) const  {nrEvents = 0; return DEVICE_OK;}
-   int StartStageSequence() {return DEVICE_OK;}
-   int StopStageSequence() {return DEVICE_OK;}
-   int ClearStageSequence() {return DEVICE_OK;}
-   int AddToStageSequence(double /*position*/) {return DEVICE_OK;}
-   int SendStageSequence() {return DEVICE_OK;}
+  int IsStageSequenceable(bool& isSequenceable) const;
+  int GetStageSequenceMaxLength(long& nrEvents) const;
+  int StartStageSequence();
+  int StopStageSequence();
+  int ClearStageSequence();
+  int AddToStageSequence(double /*position*/);
+  int SendStageSequence();
 
 private:
    int GetFocusFirmwareVersion();
