@@ -81,8 +81,9 @@ class ShapeokoTinyGHub : public HubBase<ShapeokoTinyGHub>
   // HUB api
   int DetectInstalledDevices();
 
-  int SendConfigCommand(std::string command);
+  int SendConfigCommand(std::string command, std::string& answer);
   int SendCommand(std::string command, std::string &returnString);
+  int SendCommandNoResponse(std::string command);
   int SetAnswerTimeoutMs(double timout);
   MM::DeviceDetectionStatus DetectDevice(void);
   int PurgeComPortH();

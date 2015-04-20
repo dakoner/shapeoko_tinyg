@@ -39,7 +39,6 @@ const char* NoHubError = "Parent Hub not defined.";
 
 void CShapeokoTinyGXYStage::GetName(char* Name) const
 {
-  LogMessage("XYStage: GetName");
   CDeviceUtils::CopyLimitedString(Name, g_XYStageDeviceName);
 }
 
@@ -175,32 +174,39 @@ int CShapeokoTinyGXYStage::SetRelativePositionSteps(long x, long y)
   return this->SetPositionSteps(xSteps+x, ySteps+y);
 }
 
-int CShapeokoTinyGXYStage::Home() { return DEVICE_OK; }
-int CShapeokoTinyGXYStage::Stop() { return DEVICE_OK; }
+int CShapeokoTinyGXYStage::Home() {   LogMessage("TinyG XYStage home.");
+return DEVICE_OK; }
+int CShapeokoTinyGXYStage::Stop() { LogMessage("TinyG XYStage stop.");
+return DEVICE_OK; }
 
-int CShapeokoTinyGXYStage::SetOrigin() { return DEVICE_OK; }
+int CShapeokoTinyGXYStage::SetOrigin() { LogMessage("TinyG XYStage set origin."); return DEVICE_OK; }
 
 int CShapeokoTinyGXYStage::GetLimitsUm(double& xMin, double& xMax, double& yMin, double& yMax)
 {
+  LogMessage("TinyG XYStage get limits um");
   xMin = lowerLimit_; xMax = upperLimit_;
   yMin = lowerLimit_; yMax = upperLimit_;
   return DEVICE_OK;
 }
 
 int CShapeokoTinyGXYStage::GetStepLimits(long& /*xMin*/, long& /*xMax*/, long& /*yMin*/, long& /*yMax*/)
-{ return DEVICE_UNSUPPORTED_COMMAND; }
+{   LogMessage("TinyG XYStage get limits um");
+return DEVICE_UNSUPPORTED_COMMAND; }
 
-double CShapeokoTinyGXYStage::GetStepSizeXUm() { return stepSize_um_; }
-double CShapeokoTinyGXYStage::GetStepSizeYUm() { return stepSize_um_; }
-int CShapeokoTinyGXYStage::Move(double /*vx*/, double /*vy*/) {return DEVICE_OK;}
+double CShapeokoTinyGXYStage::GetStepSizeXUm() {   LogMessage("TinyG XYStage get step size x um");
+return stepSize_um_; }
+double CShapeokoTinyGXYStage::GetStepSizeYUm() {   LogMessage("TinyG XYStage get step size y um");
+return stepSize_um_; }
+int CShapeokoTinyGXYStage::Move(double /*vx*/, double /*vy*/) {LogMessage("TinyG XYStage move"); return DEVICE_OK;}
 
 int CShapeokoTinyGXYStage::IsXYStageSequenceable(bool& isSequenceable) const {isSequenceable = false; return DEVICE_OK;}
 
 int CShapeokoTinyGXYStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
+LogMessage("TinyG XYStage OnStepSize");
   if (eAct == MM::BeforeGet)
   {
-        
+        LogMessage("TinyG XYStage OnStepSizex");
 
     pProp->Set(stepSize_um_);
   }
@@ -224,6 +230,7 @@ int CShapeokoTinyGXYStage::OnStepSize(MM::PropertyBase* pProp, MM::ActionType eA
 // TODO(dek): these should send actual commands to update the device
 int CShapeokoTinyGXYStage::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
+LogMessage("TinyG XYStage OnmaxVelocity");
   if (eAct == MM::BeforeGet)
   {
         
@@ -250,6 +257,7 @@ int CShapeokoTinyGXYStage::OnMaxVelocity(MM::PropertyBase* pProp, MM::ActionType
 
 int CShapeokoTinyGXYStage::OnAcceleration(MM::PropertyBase* pProp, MM::ActionType eAct)
 {
+LogMessage("TinyG XYStage OnAcceleration");
   if (eAct == MM::BeforeGet)
   {
         

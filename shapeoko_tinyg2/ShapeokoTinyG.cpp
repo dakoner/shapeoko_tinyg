@@ -89,7 +89,7 @@ ShapeokoTinyGHub::ShapeokoTinyGHub():
     initialized_(false),
     busy_(false)
 {
-  LogMessage("Constructor");
+  LogMessage("TinyG Constructor");
   CPropertyAction* pAct  = new CPropertyAction(this, &ShapeokoTinyGHub::OnPort);
   CreateProperty(MM::g_Keyword_Port, "Undefined", MM::String, false, pAct, true);
 }
@@ -98,7 +98,7 @@ ShapeokoTinyGHub::~ShapeokoTinyGHub() { Shutdown();}
 
 int ShapeokoTinyGHub::Initialize()
 {
-  LogMessage("Initialize");
+  LogMessage("TinyG Initialize");
   /* From EVA's XYStage */
   int ret = DEVICE_ERR;
 
@@ -154,12 +154,52 @@ int ShapeokoTinyGHub::Initialize()
   // synchronize all properties
   // --------------------------
 
-  ret = SendConfigCommand("$ee=0");
-  if (ret != DEVICE_OK)
-    return ret;
+  PurgeComPortH();
+
+  // LogMessage(std::string("Sending reset!"));
+  // SetAnswerTimeoutMs(10000.0);
+  // const char* controlx = "";
+  // ret = WriteToComPortH((const unsigned char*) controlx, 1);
+  // if (ret != DEVICE_OK)
+  //   return ret;
+  // string an;
+  // CDeviceUtils::SleepMs(600);
+  // ret = GetSerialAnswerComPortH(an,"\r");
+  // std::string expected = "{\"r\":{\"fv\":0.970,\"fb\":438.02,\"hp\":1,\"hv\":8,\"id\":\"1H4973-ENT\",\"msg\":\"SYSTEM READY\"},\"f\":[1,0,0,1418]}\n";
+  // if (ret != DEVICE_OK) {
+  //   return ret;
+  // }
+  // if (an != expected) {
+  //   LogMessage("failed to get expected string, got:");
+  //   LogMessage(an);
+  //   return DEVICE_ERR;
+  // }
 
   PurgeComPortH();
 
+  std::string answer;
+  ret = SendConfigCommand("$ee=0\r", answer);
+  if (ret != DEVICE_OK)
+    return ret;
+  std::string expected = "[ee]  enable echo                 0 [0=off,1=on]\n";
+  if (answer != expected) {
+    LogMessage("Got unexpected response to disable echo.");
+    return DEVICE_ERR;
+  }
+
+  PurgeComPortH();
+
+  ret = SendConfigCommand("$tv=0\r", answer);
+  if (ret != DEVICE_OK)
+    return ret;
+  expected = "[tv]  text verbosity              0 [0=silent,1=verbose]\n";
+  if (answer != expected) {
+    LogMessage("Got unexpected response to disable verbosity.");
+    return DEVICE_ERR;
+  }
+
+
+  PurgeComPortH();
   ret = GetControllerVersion(version_);
   if( DEVICE_OK != ret)
     return ret;
@@ -171,21 +211,17 @@ int ShapeokoTinyGHub::Initialize()
   PurgeComPortH();
 
   string command = "G90";
-  string answer;
   LogMessage("Writing relative mode to com port");
   LogMessage(command);
-  ret = SendCommand(command, answer);
+  ret = SendCommandNoResponse(command);
   if (ret != DEVICE_OK)
     return ret;
-  LogMessage("Got answer:");
-  LogMessage(answer.c_str());
 
   PurgeComPortH();
 
   ret = GetStatus();
   if (ret != DEVICE_OK)
     return ret;
-
 
   ret = UpdateStatus();
   if (ret != DEVICE_OK)
@@ -196,14 +232,15 @@ int ShapeokoTinyGHub::Initialize()
 }
 
 int ShapeokoTinyGHub::Shutdown() {initialized_ = false; return DEVICE_OK;};
-bool ShapeokoTinyGHub::Busy() { return busy_;} ;
+bool ShapeokoTinyGHub::Busy() {   LogMessage("TinyG busy");
+return busy_;} ;
 
 // private and expects caller to:
 // 1. guard the port
 // 2. purge the port
 int ShapeokoTinyGHub::GetControllerVersion(string& version)
 {
-  LogMessage("GetControllerVersion");
+  LogMessage("TinyG GetControllerVersion");
   int ret = DEVICE_OK;
   const char* command = "$fv";
   version = "";
@@ -222,7 +259,7 @@ int ShapeokoTinyGHub::GetControllerVersion(string& version)
 }
 int ShapeokoTinyGHub::DetectInstalledDevices()
 {
-  LogMessage("DetectInstalledDevices");
+  LogMessage("TinyG DetectInstalledDevices");
   ClearInstalledDevices();
 
   // make sure this method is called before we look for available devices
@@ -253,6 +290,7 @@ void ShapeokoTinyGHub::GetName(char* pName) const
 
 int ShapeokoTinyGHub::OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
+  LogMessage("TinyG OnVersion");
   if (pAct == MM::BeforeGet)
   {
     pProp->Set(version_.c_str());
@@ -261,7 +299,7 @@ int ShapeokoTinyGHub::OnVersion(MM::PropertyBase* pProp, MM::ActionType pAct)
 }
 int ShapeokoTinyGHub::OnPort(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
-  LogMessage("OnPort");
+  LogMessage("TinyG OnPort");
   if (pAct == MM::BeforeGet)
   {
     pProp->Set(port_.c_str());
@@ -276,7 +314,7 @@ int ShapeokoTinyGHub::OnPort(MM::PropertyBase* pProp, MM::ActionType pAct)
 
 int ShapeokoTinyGHub::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
 {
-  LogMessage("OnCommand");
+  LogMessage("TinyG OnCommand");
   if (pAct == MM::BeforeGet)
   {
     pProp->Set(commandResult_.c_str());
@@ -298,7 +336,7 @@ int ShapeokoTinyGHub::OnCommand(MM::PropertyBase* pProp, MM::ActionType pAct)
 
 int ShapeokoTinyGHub::SendCommand(std::string command, std::string &returnString)
 {
-  LogMessage("SendCommand");
+  LogMessage("TinyG SendCommand");
   LogMessage("command=" + command);
   if(!portAvailable_)
     return ERR_NO_PORT_SET;
@@ -317,70 +355,61 @@ int ShapeokoTinyGHub::SendCommand(std::string command, std::string &returnString
     return ret;
   }
   std::string an;
-  if(command.c_str()[0] == 0x18 ){
-    LogMessage("Send reset.");
-    CDeviceUtils::SleepMs(600);
-    SetAnswerTimeoutMs(10000.0);
-    ret = GetSerialAnswerComPortH(an,"\r");
-    // ret = GetParameters();
-    // returnString.assign("ok");
-    //     LogMessage(std::string("Reset!"));
-    return DEVICE_OK;
-  }
-  else if(command.c_str()[0] == '$' && command.c_str()[1] == 's' && command.c_str()[2] == 'r'){
+  try
+  {
 
-    LogMessage("Status request.");
-    SetAnswerTimeoutMs(10000.0);
     ret = GetSerialAnswerComPortH(an,"\r");
     if (ret != DEVICE_OK)
     {
-      LogMessage(std::string("answer get error!"));
+      LogMessage(std::string("answer get error!_"));
       return ret;
     }
-    returnString.assign(an);
-    return DEVICE_OK;
-
+    LogMessage("answer:");
+    LogMessage(an);
+    returnString = an;
   }
-  else{
-    LogMessage("Other.");
-    while(true) {
-      try
-      {
-
-        ret = GetSerialAnswerComPortH(an,"\r");
-        if (ret != DEVICE_OK)
-        {
-          LogMessage(std::string("answer get error!_"));
-          return ret;
-        }
-        LogMessage("answer:");
-        LogMessage(an);
-        if (an.find("tinyg [mm] ok>") != std::string::npos) {
-          return DEVICE_OK;
-        if (an.length() <1)
-          return DEVICE_ERR;
-
-        }
-        returnString += an;
-      }
-      catch(...)
-      {
-        LogMessage("Exception in send command!");
-        return DEVICE_ERR;
-      }
-    }
+  catch(...)
+  {
+    LogMessage("Exception in send command!");
+    return DEVICE_ERR;
   }
+  return DEVICE_OK;
 }
 
-int ShapeokoTinyGHub::SendConfigCommand(string command)
+int ShapeokoTinyGHub::SendCommandNoResponse(std::string command)
 {
+  LogMessage("TinyG SendCommand");
+  LogMessage("command=" + command);
   if(!portAvailable_)
     return ERR_NO_PORT_SET;
   // needs a lock because the other Thread will also use this function
   MMThreadGuard(this->executeLock_);
   PurgeComPortH();
   int ret = DEVICE_OK;
-  SetAnswerTimeoutMs(5000.0); //for normal command
+  SetAnswerTimeoutMs(300.0); //for normal command
+
+  LogMessage("Write command.");
+  ret = SetCommandComPortH(command.c_str(),"\r");
+  LogMessage("set command, ret=" + ret);
+  if (ret != DEVICE_OK)
+  {
+    LogMessage("command write fail");
+    return ret;
+  }
+  return DEVICE_OK;
+}
+
+
+int ShapeokoTinyGHub::SendConfigCommand(string command, string& answer)
+{
+  LogMessage("TinyG SendConfigCommand");
+  if(!portAvailable_)
+    return ERR_NO_PORT_SET;
+  // needs a lock because the other Thread will also use this function
+  MMThreadGuard(this->executeLock_);
+  PurgeComPortH();
+  int ret = DEVICE_OK;
+  SetAnswerTimeoutMs(10000.0); //for normal command
 
   LogMessage("Writing command to com port");
   LogMessage(command);
@@ -391,31 +420,20 @@ int ShapeokoTinyGHub::SendConfigCommand(string command)
     LogMessage("command write fail");
     return ret;
   }
-  std::string an;
   try
   {
 
-  LogMessage("Reading answer.");
-    ret = GetSerialAnswerComPortH(an,"\r");
+    LogMessage("Reading answer.");
+    ret = GetSerialAnswerComPortH(answer,"\r");
     if (ret != DEVICE_OK)
     {
       LogMessage(std::string("answer get error!_"));
       return ret;
     }
     LogMessage("answer:");
-    LogMessage(std::string(an));
-    if (an.length() <1)
+    LogMessage(std::string(answer));
+    if (answer.length() <1)
       return DEVICE_ERR;
-    ret = GetSerialAnswerComPortH(an,"\r");
-
-    if (an.find("tinyg [mm] ok>") != std::string::npos) {
-      LogMessage("got tinyg ok");
-      return DEVICE_OK;
-    }
-    else {
-      LogMessage("expected tinyg ok");
-      return DEVICE_ERR;
-    }
   }
   catch(...)
   {
@@ -427,7 +445,7 @@ int ShapeokoTinyGHub::SendConfigCommand(string command)
 
 MM::DeviceDetectionStatus ShapeokoTinyGHub::DetectDevice(void)
 {
-  LogMessage("DetectDevice");
+  LogMessage("TinyG DetectDevice");
   if (initialized_)
     return MM::CanCommunicate;
 
@@ -490,6 +508,7 @@ MM::DeviceDetectionStatus ShapeokoTinyGHub::DetectDevice(void)
 
 int ShapeokoTinyGHub::SetAnswerTimeoutMs(double timeout)
 {
+  LogMessage("TinyG SetAnswerTimeoutMs");
   if(!portAvailable_)
     return ERR_NO_PORT_SET;
   GetCoreCallback()->SetDeviceProperty(port_.c_str(), "AnswerTimeout",  CDeviceUtils::ConvertToString(timeout));
@@ -526,8 +545,7 @@ Type stringToNum(const std::string& str)
 // 2. purge the port
 int ShapeokoTinyGHub::GetStatus()
 {
-
-  LogMessage("GetStatus");
+  LogMessage("TinyG GetStatus");
   std::string cmd;
   cmd.assign("$sr"); // x step/mm
   std::string returnString;
@@ -538,7 +556,7 @@ int ShapeokoTinyGHub::GetStatus()
   MMThreadGuard(this->executeLock_);
   PurgeComPortH();
   int ret = DEVICE_OK;
-  SetAnswerTimeoutMs(300.0); //for normal command
+  SetAnswerTimeoutMs(1000.0); //for normal command
 
   LogMessage("Write command.");
   ret = SetCommandComPortH(cmd.c_str(),"\r");
@@ -562,12 +580,12 @@ int ShapeokoTinyGHub::GetStatus()
       }
       LogMessage("answer:");
       LogMessage(an);
-      if (an.find("tinyg [mm] ok>") != std::string::npos) {
-        break;
-      }
       if (an.length() <1)
         return DEVICE_ERR;
       returnString += an;
+      if (an.find("Machine state:") != std::string::npos) {
+        break;
+      }
     }
     catch(...)
     {
@@ -632,16 +650,20 @@ int ShapeokoTinyGHub::GetStatus()
 
 int ShapeokoTinyGHub::ReadFromComPortH(unsigned char* answer, unsigned maxLen, unsigned long& bytesRead)
 {
+  LogMessage("TinyG ReadFromComPortH");
   return ReadFromComPort(port_.c_str(), answer, maxLen, bytesRead);
 }
 int ShapeokoTinyGHub::SetCommandComPortH(const char* command, const char* term)
 {
+  LogMessage("TinyG SetCommandComPortH");
   return SendSerialCommand(port_.c_str(),command,term);
 }
 int ShapeokoTinyGHub::GetSerialAnswerComPortH (std::string& ans,  const char* term)
 {
+  LogMessage("TinyG GetSerialAnswerComPortH");
   return GetSerialAnswer(port_.c_str(),term,ans);
 }
 
-int ShapeokoTinyGHub::PurgeComPortH() {return PurgeComPort(port_.c_str());}
-int ShapeokoTinyGHub::WriteToComPortH(const unsigned char* command, unsigned len) {return WriteToComPort(port_.c_str(), command, len);}
+int ShapeokoTinyGHub::PurgeComPortH() {  LogMessage("TinyG PurgeComPortH");
+return PurgeComPort(port_.c_str());}
+int ShapeokoTinyGHub::WriteToComPortH(const unsigned char* command, unsigned len) {LogMessage("TinyG WriteToComPortH"); return WriteToComPort(port_.c_str(), command, len);}
