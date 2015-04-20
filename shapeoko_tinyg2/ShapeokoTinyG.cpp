@@ -83,6 +83,22 @@ MODULE_API void DeleteDevice(MM::Device* pDevice)
   delete pDevice;
 }
 
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, delim)) {
+    elems.push_back(item);
+  }
+  return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+  std::vector<std::string> elems;
+  split(s, delim, elems);
+  return elems;
+}
+
 
 
 ShapeokoTinyGHub::ShapeokoTinyGHub():
@@ -156,24 +172,24 @@ int ShapeokoTinyGHub::Initialize()
 
   PurgeComPortH();
 
-  // LogMessage(std::string("Sending reset!"));
-  // SetAnswerTimeoutMs(10000.0);
-  // const char* controlx = "";
-  // ret = WriteToComPortH((const unsigned char*) controlx, 1);
-  // if (ret != DEVICE_OK)
-  //   return ret;
-  // string an;
-  // CDeviceUtils::SleepMs(600);
-  // ret = GetSerialAnswerComPortH(an,"\r");
-  // std::string expected = "{\"r\":{\"fv\":0.970,\"fb\":438.02,\"hp\":1,\"hv\":8,\"id\":\"1H4973-ENT\",\"msg\":\"SYSTEM READY\"},\"f\":[1,0,0,1418]}\n";
-  // if (ret != DEVICE_OK) {
-  //   return ret;
-  // }
-  // if (an != expected) {
-  //   LogMessage("failed to get expected string, got:");
-  //   LogMessage(an);
-  //   return DEVICE_ERR;
-  // }
+  LogMessage(std::string("Sending reset!"));
+  SetAnswerTimeoutMs(10000.0);
+  const char* controlx = "";
+  ret = WriteToComPortH((const unsigned char*) controlx, 1);
+  if (ret != DEVICE_OK)
+    return ret;
+  string an;
+  CDeviceUtils::SleepMs(600);
+  ret = GetSerialAnswerComPortH(an,"\r");
+  std::string expected = "{\"r\":{\"fv\":0.970,\"fb\":438.02,\"hp\":1,\"hv\":8,\"id\":\"1H4973-ENT\",\"msg\":\"SYSTEM READY\"},\"f\":[1,0,0,1418]}\n";
+  if (ret != DEVICE_OK) {
+    return ret;
+  }
+  if (an != expected) {
+    LogMessage("failed to get expected string, got:");
+    LogMessage(an);
+    return DEVICE_ERR;
+  }
 
   PurgeComPortH();
 
@@ -181,7 +197,7 @@ int ShapeokoTinyGHub::Initialize()
   ret = SendConfigCommand("$ee=0\r", answer);
   if (ret != DEVICE_OK)
     return ret;
-  std::string expected = "[ee]  enable echo                 0 [0=off,1=on]\n";
+  expected = "[ee]  enable echo                 0 [0=off,1=on]\n";
   if (answer != expected) {
     LogMessage("Got unexpected response to disable echo.");
     return DEVICE_ERR;
@@ -376,6 +392,58 @@ int ShapeokoTinyGHub::SendCommand(std::string command, std::string &returnString
   return DEVICE_OK;
 }
 
+int ShapeokoTinyGHub::SendMotionCommand(std::string command)
+{
+  LogMessage("TinyG SendMotionCommand");
+  LogMessage("command=" + command);
+  if(!portAvailable_)
+    return ERR_NO_PORT_SET;
+  // needs a lock because the other Thread will also use this function
+  MMThreadGuard(this->executeLock_);
+  PurgeComPortH();
+  int ret = DEVICE_OK;
+  SetAnswerTimeoutMs(300.0); //for normal command
+
+  LogMessage("Write command.");
+  ret = SetCommandComPortH(command.c_str(),"\r");
+  LogMessage("set command, ret=" + ret);
+  if (ret != DEVICE_OK)
+  {
+    LogMessage("command write fail");
+    return ret;
+  }
+  bool done = false;
+  while(!done) {
+    std::string an;
+    try
+    {
+      ret = GetSerialAnswerComPortH(an,"\r");
+      if (ret != DEVICE_OK)
+      {
+        LogMessage(std::string("answer get error!_"));
+        return ret;
+      }
+      LogMessage("answer:");
+      LogMessage(an);
+      std::vector<std::string> result = split(an, ',');
+      for(std::vector<std::string>::iterator item = result.begin(); item != result.end(); ++item) {
+        std::vector<std::string> p = split(*item, ':');
+        if (p[0] == "stat" && p[1] == "3\n") {
+          LogMessage("Move done.");
+          done = true;
+          break;
+        }
+      }
+    }
+    catch(...)
+    {
+      LogMessage("Exception in send command!");
+      return DEVICE_ERR;
+    }
+  }
+  return DEVICE_OK;
+}
+
 int ShapeokoTinyGHub::SendCommandNoResponse(std::string command)
 {
   LogMessage("TinyG SendCommand");
@@ -513,22 +581,6 @@ int ShapeokoTinyGHub::SetAnswerTimeoutMs(double timeout)
     return ERR_NO_PORT_SET;
   GetCoreCallback()->SetDeviceProperty(port_.c_str(), "AnswerTimeout",  CDeviceUtils::ConvertToString(timeout));
   return DEVICE_OK;
-}
-
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
-  std::stringstream ss(s);
-  std::string item;
-  while (std::getline(ss, item, delim)) {
-    elems.push_back(item);
-  }
-  return elems;
-}
-
-
-std::vector<std::string> split(const std::string &s, char delim) {
-  std::vector<std::string> elems;
-  split(s, delim, elems);
-  return elems;
 }
 
 template <class Type>
