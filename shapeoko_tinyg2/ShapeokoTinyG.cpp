@@ -171,7 +171,8 @@ int ShapeokoTinyGHub::Initialize()
   // --------------------------
 
   PurgeComPortH();
-
+  std::string expected; 
+  /*
   LogMessage(std::string("Sending reset!"));
   SetAnswerTimeoutMs(10000.0);
   const char* controlx = "";
@@ -181,7 +182,7 @@ int ShapeokoTinyGHub::Initialize()
   string an;
   CDeviceUtils::SleepMs(600);
   ret = GetSerialAnswerComPortH(an,"\r");
-  std::string expected = "{\"r\":{\"fv\":0.970,\"fb\":438.02,\"hp\":1,\"hv\":8,\"id\":\"1H4973-ENT\",\"msg\":\"SYSTEM READY\"},\"f\":[1,0,0,1418]}\n";
+  expected = "{\"r\":{\"fv\":0.970,\"fb\":438.02,\"hp\":1,\"hv\":8,\"id\":\"1H4973-ENT\",\"msg\":\"SYSTEM READY\"},\"f\":[1,0,0,1418]}\n";
   if (ret != DEVICE_OK) {
     return ret;
   }
@@ -192,24 +193,24 @@ int ShapeokoTinyGHub::Initialize()
   }
 
   PurgeComPortH();
-
+  */
   std::string answer;
-  ret = SendConfigCommand("$ee=0\r", answer);
+  ret = SendConfigCommand("$ee=0", answer);
   if (ret != DEVICE_OK)
     return ret;
-  expected = "[ee]  enable echo                 0 [0=off,1=on]\n";
-  if (answer != expected) {
+  expected = "[ee]";
+  if (answer.find(expected) == std::string::npos) {
     LogMessage("Got unexpected response to disable echo.");
     return DEVICE_ERR;
   }
 
   PurgeComPortH();
 
-  ret = SendConfigCommand("$tv=0\r", answer);
+  ret = SendConfigCommand("$tv=0", answer);
   if (ret != DEVICE_OK)
     return ret;
-  expected = "[tv]  text verbosity              0 [0=silent,1=verbose]\n";
-  if (answer != expected) {
+  expected = "[tv]";
+  if (answer.find(expected) == std::string::npos) {
     LogMessage("Got unexpected response to disable verbosity.");
     return DEVICE_ERR;
   }
@@ -508,7 +509,7 @@ int ShapeokoTinyGHub::SendConfigCommand(string command, string& answer)
     LogMessage("Exception in send command!");
     return DEVICE_ERR;
   }
-
+  return DEVICE_OK;
 }
 
 MM::DeviceDetectionStatus ShapeokoTinyGHub::DetectDevice(void)
